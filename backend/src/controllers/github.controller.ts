@@ -8,28 +8,28 @@ const octokit = new Octokit({
   userAgent: "os-finder",
 });
 
-const calculateFastMetrics = (repo: any): IProject["health_metrics"] => {
-  const lastPushedDate = new Date(repo.pushed_at);
-  const today = new Date();
-  const diffTime = Math.abs(today.getTime() - lastPushedDate.getTime());
+// const calculateFastMetrics = (repo: any): IProject["health_metrics"] => {
+//   const lastPushedDate = new Date(repo.pushed_at);
+//   const today = new Date();
+//   const diffTime = Math.abs(today.getTime() - lastPushedDate.getTime());
 
-  const lastActivityDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+//   const lastActivityDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  const issuesCount = repo.open_issues_count > 0 ? repo.open_issues_count : 1;
-  const starsPerIssueRatio = repo.stargazers_count / issuesCount;
+//   const issuesCount = repo.open_issues_count > 0 ? repo.open_issues_count : 1;
+//   const starsPerIssueRatio = repo.stargazers_count / issuesCount;
 
-  const createdAt = new Date(repo.created_at);
-  const projectAgeDays = Math.ceil(
-    Math.abs(today.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
-  );
+//   const createdAt = new Date(repo.created_at);
+//   const projectAgeDays = Math.ceil(
+//     Math.abs(today.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+//   );
 
-  return {
-    last_calculated: new Date(),
-    responsiveness_score: lastActivityDays, // Value: Lower is better (fewer days since last push)
-    activity_score: parseFloat(starsPerIssueRatio.toFixed(2)), // Value: Higher is better
-    stale_issue_ratio: 0,
-  };
-};
+//   return {
+//     last_calculated: new Date(),
+//     responsiveness_score: lastActivityDays, // Value: Lower is better (fewer days since last push)
+//     activity_score: parseFloat(starsPerIssueRatio.toFixed(2)), // Value: Higher is better
+//     stale_issue_ratio: 0,
+//   };
+// };
 
 export const fetchAndProcessRepos = async (
   language: string,
@@ -42,6 +42,8 @@ export const fetchAndProcessRepos = async (
     "-notes",
     "-book",
   ].join(" ");
+
+  console.log(excludeKeywords);
 
   const activeLabel = 'label:"help wanted"';
 
@@ -57,6 +59,8 @@ export const fetchAndProcessRepos = async (
       order: "desc",
       per_page: 10,
     });
+    console.log(response.data.items);
+
     githubRepos = response.data.items;
   } catch (error) {
     console.log(error);
@@ -72,17 +76,17 @@ export const fetchAndProcessRepos = async (
 
   for (const repo of githubRepos) {
     try {
-      const health_metrics = calculateFastMetrics(repo);
+      // const health_metrics = calculateFastMetrics(repo);
 
       const projectData = {
-        githubId: repo.id,
+        repoId: repo.id,
         owner: repo.owner.login,
         repo_name: repo.name,
         description: repo.description || "No description provided.",
         language: repo.language,
         topics: repo.topics || [],
 
-        health_metrics: health_metrics,
+        // health_metrics: health_metrics,
 
         issue_data: {
           total_open_issues: repo.open_issues_count,
@@ -92,7 +96,7 @@ export const fetchAndProcessRepos = async (
       console.log("Updating Repos in DB");
 
       const updatedProject = await Project.findOneAndUpdate(
-        { githubId: repo.id },
+        { repoId: repo.id },
         { $set: projectData },
         { upsert: true, new: true, runValidators: true }
       );
@@ -102,6 +106,7 @@ export const fetchAndProcessRepos = async (
     }
   }
   console.log("Process completed");
+  console.log(processedProjects);
 
   return processedProjects;
 };

@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { fetchAndProcessRepos } from "../controllers/github.controller";
+import { Project } from "../models/project.model";
 
 const router = Router();
-
 
 // Endpoint for searching projects: GET /api/github/search?lang=javascript
 router.get("/search", async (req, res) => {
@@ -16,15 +16,24 @@ router.get("/search", async (req, res) => {
       .send({ message: "Language parameter (lang) is required." });
   }
   console.log("Request Recieved");
-  
 
   try {
-    const updatedRepos = await fetchAndProcessRepos(language, stars);
+    await fetchAndProcessRepos(language, stars)
+    
 
-    // Success response
+    const finalResults = await Project.find({
+      language: language,
+      "health_metrics.responsiveness_score": { $exists: true }, // Ensure metric field exists
+    })
+      .sort({ "health_metrics.responsiveness_score": 1 }) // 1 = Ascending. Low 'Last Activity Days' is GOOD!
+      .limit(10)
+      .exec();
+
+    console.log(finalResults);
+
     return res.json({
-      message: `Successfully fetched and updated ${updatedRepos.length} repositories with dummy metrics.`,
-      data: updatedRepos,
+      message: `Successfully fetched and updated ${finalResults.length} repositories with dummy metrics.`,
+      data: finalResults,
     });
   } catch (error) {
     return res.status(500).send({
@@ -33,6 +42,5 @@ router.get("/search", async (req, res) => {
     });
   }
 });
-
 
 export { router };

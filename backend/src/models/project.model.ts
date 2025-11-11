@@ -1,48 +1,60 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IProject extends Document {
-  github_id: number;
-  owner: string;
+  repoId: number;
   repo_name: string;
-  description: string;
+  repo_url: string;
+  owner: string;
   language: string;
   topics: string[];
+  open_prs: number;
+  stars: number;
+  contributors: number;
 
-  // Custom Calculated Health Metrics (Yeh aapke project ka USP hai)
-  health_metrics: {
-    last_calculated: Date;
-    responsiveness_score: number; // Avg time to close a PR (in hours)
-    activity_score: number; // Unique contributors in last X days
-    stale_issue_ratio: number; // % of issues with no activity
-  };
+  // // Custom Calculated Health Metrics (Yeh aapke project ka USP hai)
+  // health_metrics: {
+  //   last_calculated: Date;
+  //   responsiveness_score: number; // Avg time to close a PR (in hours)
+  //   activity_score: number; // Unique contributors in last X days
+  //   stale_issue_ratio: number; // % of issues with no activity
+  // };
 
   // Basic GitHub Data
   issue_data: {
     total_open_issues: number;
     beginner_issues_count: number; // 'good first issue' label count
   };
+  summary: string,
+  last_updated: Date
 }
 
 const projectSchema: Schema = new Schema(
   {
-    githubId: { type: Number, required: true, unique: true },
-    owner: { type: String, required: true },
+    repoId: { type: Number, required: true, unique: true },
     repo_name: { type: String, required: true },
-    description: { type: String },
+    repo_url: { type: String, required: true },
+    owner: { type: String, required: true },
     language: { type: String, required: true },
     topics: [{ type: String }],
-    health_metrics: {
-      last_calculated: { type: Date, default: Date.now },
-      responsiveness_score: { type: Number, default: 0 },
-      activity_score: { type: Number, default: 0 },
-      stale_issue_ratio: { type: Number, default: 0 },
-    },
+    open_prs: { type: Number, default: 0 },
+    stars: { type: Number, default: 0 },
+    contributors: { type: Number, default: 0 },
     issue_data: {
       total_open_issues: { type: Number, default: 0 },
       beginner_issues_count: { type: Number, default: 0 },
+    },
+    summary: {
+      type: String,
+      default: "",
+    },
+    last_updated: {
+      type: Date,
+      required: true,
     },
   },
   { timestamps: true }
 );
 
 export const Project = mongoose.model<IProject>("projects", projectSchema);
+projectSchema.index({ language: 1 });
+projectSchema.index({ stars: -1 });
