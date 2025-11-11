@@ -9,7 +9,6 @@ const octokit = new Octokit({
 });
 
 const calculateFastMetrics = (repo: any): IProject["health_metrics"] => {
-
   const lastPushedDate = new Date(repo.pushed_at);
   const today = new Date();
   const diffTime = Math.abs(today.getTime() - lastPushedDate.getTime());
@@ -18,7 +17,6 @@ const calculateFastMetrics = (repo: any): IProject["health_metrics"] => {
 
   const issuesCount = repo.open_issues_count > 0 ? repo.open_issues_count : 1;
   const starsPerIssueRatio = repo.stargazers_count / issuesCount;
-
 
   const createdAt = new Date(repo.created_at);
   const projectAgeDays = Math.ceil(
@@ -29,16 +27,25 @@ const calculateFastMetrics = (repo: any): IProject["health_metrics"] => {
     last_calculated: new Date(),
     responsiveness_score: lastActivityDays, // Value: Lower is better (fewer days since last push)
     activity_score: parseFloat(starsPerIssueRatio.toFixed(2)), // Value: Higher is better
-    stale_issue_ratio: 0, 
+    stale_issue_ratio: 0,
   };
 };
-
 
 export const fetchAndProcessRepos = async (
   language: string,
   minStars: number = 100
 ): Promise<(IProject & Document)[]> => {
-  const searchQuery = `language:${language} stars:>${minStars} fork:false`;
+  const excludeKeywords = [
+    "-algorithm",
+    "-tutorial",
+    "-example",
+    "-notes",
+    "-book",
+  ].join(" ");
+
+  const activeLabel = 'label:"help wanted"';
+
+  const searchQuery = `${excludeKeywords} ${activeLabel} language:${language} stars:>${minStars} fork:false`;
   let githubRepos: any[] = [];
 
   console.log("Fetching and processing repos");
@@ -46,7 +53,7 @@ export const fetchAndProcessRepos = async (
   try {
     const response = await octokit.search.repos({
       q: searchQuery,
-      sort: "stars",
+      sort: "updated",
       order: "desc",
       per_page: 10,
     });
