@@ -1,6 +1,7 @@
 import { Project, IProject } from "../models/project.model";
 import { _config } from "../config/config";
 import { graphql } from "@octokit/graphql";
+import { Request, Response } from "express";
 
 const gh = graphql.defaults({
   headers: { authorization: `token ${_config.GITHUB_TOKEN}` },
@@ -23,115 +24,11 @@ interface GitHubRepoNode {
   defaultBranchRef?: { target?: { committedDate: string } };
   repositoryTopics: { nodes: { topic: { name: string } }[] };
 }
-
 interface GitHubResponse {
   search: {
     nodes: GitHubRepoNode[];
   };
 }
-
-// const calculateFastMetrics = (repo: any): IProject["health_metrics"] => {
-//   const lastPushedDate = new Date(repo.pushed_at);
-//   const today = new Date();
-//   const diffTime = Math.abs(today.getTime() - lastPushedDate.getTime());
-
-//   const lastActivityDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-//   const issuesCount = repo.open_issues_count > 0 ? repo.open_issues_count : 1;
-//   const starsPerIssueRatio = repo.stargazers_count / issuesCount;
-
-//   const createdAt = new Date(repo.created_at);
-//   const projectAgeDays = Math.ceil(
-//     Math.abs(today.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
-//   );
-
-//   return {
-//     last_calculated: new Date(),
-//     responsiveness_score: lastActivityDays, // Value: Lower is better (fewer days since last push)
-//     activity_score: parseFloat(starsPerIssueRatio.toFixed(2)), // Value: Higher is better
-//     stale_issue_ratio: 0,
-//   };
-// };
-
-// export const fetchAndProcessRepos = async (
-//   language: string,
-//   minStars: number = 100
-// ): Promise<(IProject & Document)[]> => {
-//   const excludeKeywords = [
-//     "-algorithm",
-//     "-tutorial",
-//     "-example",
-//     "-notes",
-//     "-book",
-//   ].join(" ");
-
-//   console.log(excludeKeywords);
-
-//   const activeLabel = 'label:"help wanted"';
-
-//   const searchQuery = `${excludeKeywords} ${activeLabel} language:${language} stars:>${minStars} fork:false`;
-//   let githubRepos: any[] = [];
-
-//   console.log("Fetching and processing repos");
-
-//   try {
-//     const response = await octokit.search.repos({
-//       q: searchQuery,
-//       sort: "updated",
-//       order: "desc",
-//       per_page: 10,
-//     });
-//     console.log(response.data.items);
-
-//     githubRepos = response.data.items;
-//   } catch (error) {
-//     console.log(error);
-
-//     throw new Error(
-//       "GitHub search failed. Check GITHUB_TOKEN and API rate limits."
-//     );
-//   }
-
-//   const processedProjects: (IProject & Document)[] = [];
-
-//   console.log("processing repos");
-
-//   for (const repo of githubRepos) {
-//     try {
-//       // const health_metrics = calculateFastMetrics(repo);
-
-//       const projectData = {
-//         repoId: repo.id,
-//         owner: repo.owner.login,
-//         repo_name: repo.name,
-//         description: repo.description || "No description provided.",
-//         language: repo.language,
-//         topics: repo.topics || [],
-
-//         // health_metrics: health_metrics,
-
-//         issue_data: {
-//           total_open_issues: repo.open_issues_count,
-//           beginner_issues_count: 0,
-//         },
-//       };
-//       console.log("Updating Repos in DB");
-
-//       const updatedProject = await Project.findOneAndUpdate(
-//         { repoId: repo.id },
-//         { $set: projectData },
-//         { upsert: true, new: true, runValidators: true }
-//       );
-//       processedProjects.push(updatedProject as IProject & Document);
-//     } catch (error) {
-//       console.error(`Error processing repo ${repo.name}:`, error);
-//     }
-//   }
-//   console.log("Process completed");
-//   console.log(processedProjects);
-
-//   return processedProjects;
-// };
 
 export const fetchRepos = async (lang: string, minStars: number = 100) => {
   const dateLimit = new Date();
@@ -199,7 +96,6 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
       last_updated: repo.updatedAt,
     }));
 
-
     const filtered = repos.filter((repo) => {
       const hasLicense = !!repo.licenseInfo?.key;
       const badNames = [
@@ -223,7 +119,7 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
         repo.forkCount > 5 &&
         repo.stars > 100 &&
         repo.issue_data.total_open_issues &&
-        repo.issue_data.total_open_issues > 10 
+        repo.issue_data.total_open_issues > 10
       );
     });
 
@@ -241,5 +137,25 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
   } catch (error: any) {
     console.error("GitHub GraphQL fetch failed:", error);
     throw error;
+  }
+};
+
+export const getReposFromDb = async (req: Request, res: Response) => {
+  const { lang, sortBy = "stars", order = "desc", limit = 20 } = req.query;
+  const filter: any = {};
+  if (lang) filter.language = lang;
+
+  try {
+    const repos = await Project.find(filter)
+      .sort({ [sortBy as string]: order === "asc" ? 1 : -1 })
+      .limit(Number(limit))
+      .exec();
+
+    return res.json({
+      count: repos.length,
+      data: repos,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch repos", error });
   }
 };
