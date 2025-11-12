@@ -143,7 +143,7 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
 export const getReposFromDb = async (req: Request, res: Response) => {
   const { lang, sortBy = "stars", order = "desc", limit = 20 } = req.query;
   const filter: any = {};
-  if (lang) filter.language = lang;
+  if (lang) filter.language = { $regex: new RegExp(`^${lang}$`, "i") };
 
   try {
     const repos = await Project.find(filter)
