@@ -1,12 +1,16 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IProject extends Document {
-  repoId: number;
+  repoId: String;
   repo_name: string;
   repo_url: string;
   owner: string;
   language: string;
+  licenseInfo: object;
+  isArchived: boolean;
+  forkCount: number;
   topics: string[];
+  description: string;
   open_prs: number;
   stars: number;
   contributors: number;
@@ -24,18 +28,32 @@ export interface IProject extends Document {
     total_open_issues: number;
     beginner_issues_count: number; // 'good first issue' label count
   };
-  summary: string,
-  last_updated: Date
+  summary: string;
+  last_updated: Date;
+  last_commit: Date;
 }
 
 const projectSchema: Schema = new Schema(
   {
-    repoId: { type: Number, required: true, unique: true },
+    repoId: { type: String, required: true, unique: true },
     repo_name: { type: String, required: true },
     repo_url: { type: String, required: true },
     owner: { type: String, required: true },
     language: { type: String, required: true },
+    licenseInfo: {
+      type: Object,
+      default: {},
+    },
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
+    forkCount: {
+      type: Number,
+      default: 0,
+    },
     topics: [{ type: String }],
+    description: { type: String },
     open_prs: { type: Number, default: 0 },
     stars: { type: Number, default: 0 },
     contributors: { type: Number, default: 0 },
@@ -50,6 +68,9 @@ const projectSchema: Schema = new Schema(
     last_updated: {
       type: Date,
       required: true,
+    },
+    last_commit: {
+      type: Date,
     },
   },
   { timestamps: true }
