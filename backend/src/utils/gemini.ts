@@ -1,4 +1,3 @@
-import axios from "axios";
 import { _config } from "../config/config";
 import { GoogleGenAI } from "@google/genai";
 
@@ -12,9 +11,7 @@ function getNextKey() {
   return key;
 }
 
-export async function generateGeminiSummary(
-  text: string
-): Promise<string> {
+export async function generateReadmeSummary(text: string): Promise<string> {
   const truncated = text.slice(0, 2000);
   const prompt = `Summarize this repository's purpose and contribution scope in 2–3 lines:\n\n${truncated}`;
   const key = getNextKey();
@@ -25,7 +22,7 @@ export async function generateGeminiSummary(
     });
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.5-flash-lite",
       contents: prompt,
     });
     const summary = response?.text?.trim();
