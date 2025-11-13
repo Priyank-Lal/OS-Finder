@@ -8,6 +8,7 @@ function getNextKey() {
   if (keys.length === 0) throw new Error("No Gemini keys provided");
   const key = keys[index];
   index = (index + 1) % keys.length;
+  if (!key) throw new Error("Gemini key rotation error");
   return key;
 }
 
