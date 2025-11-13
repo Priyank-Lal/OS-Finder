@@ -8,4 +8,5 @@ dotEnvConfig({
 export const _config = {
   GITHUB_TOKEN: process.env.GITHUB_TOKEN,
   MONGODB_URI: process.env.MONGODB_URI,
+  GEMINI_KEYS: process.env.GEMINI_KEYS,
 };

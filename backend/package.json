@@ -18,6 +18,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@google/genai": "^1.29.1",
     "@octokit/graphql": "^9.0.3",
     "@octokit/rest": "^22.0.1",
     "@supabase/supabase-js": "^2.80.0",
