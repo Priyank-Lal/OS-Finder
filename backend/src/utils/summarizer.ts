@@ -39,7 +39,7 @@ async function summarizeRepo(repo: any) {
 }
 
 export async function processSummaries() {
-  const queue = new PQueue({ concurrency: 5 });
+  const queue = new PQueue({ concurrency: 5, interval: 2500 });
   const repos = await Project.find({
     $or: [{ summary: { $exists: false } }, { summary: "" }],
   })
@@ -57,13 +57,13 @@ export async function processSummaries() {
     queue.add(async () => {
       try {
         await summarizeRepo(repo);
-        await sleep(2500);
+        // await sleep(2500);
       } catch (err: any) {
         console.error(`Error - ${repo.repo_name}:`, err.message);
       }
     });
   }
 
-  await queue.onIdle(); // ???
+  await queue.onIdle();
   console.log("All summaries processed.");
 }

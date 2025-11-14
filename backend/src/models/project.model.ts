@@ -13,6 +13,7 @@ export interface IProject extends Document {
   description: string;
   open_prs: number;
   stars: number;
+  score: number;
   contributors: number;
 
   // // Custom Calculated Health Metrics (Yeh aapke project ka USP hai)
@@ -26,7 +27,15 @@ export interface IProject extends Document {
   // Basic GitHub Data
   issue_data: {
     total_open_issues: number;
-    beginner_issues_count: number; // 'good first issue' label count
+    good_first_issue_count: number;
+    help_wanted_count: number;
+    first_timers_count: number;
+    beginner_count: number;
+    bug_count: number;
+    enhancement_count: number;
+    documentation_count: number;
+    refactor_count: number;
+    high_priority_count: number;
   };
   summary: string;
   last_updated: Date;
@@ -56,10 +65,19 @@ const projectSchema: Schema = new Schema(
     description: { type: String },
     open_prs: { type: Number, default: 0 },
     stars: { type: Number, default: 0 },
+    score: { type: Number, default: 0 },
     contributors: { type: Number, default: 0 },
     issue_data: {
       total_open_issues: { type: Number, default: 0 },
-      beginner_issues_count: { type: Number, default: 0 },
+      good_first_issue_count: { type: Number, default: 0 },
+      help_wanted_count: { type: Number, default: 0 },
+      first_timers_count: { type: Number, default: 0 },
+      beginner_count: { type: Number, default: 0 },
+      bug_count: { type: Number, default: 0 },
+      enhancement_count: { type: Number, default: 0 },
+      documentation_count: { type: Number, default: 0 },
+      refactor_count: { type: Number, default: 0 },
+      high_priority_count: { type: Number, default: 0 },
     },
     summary: {
       type: String,

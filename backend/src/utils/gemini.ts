@@ -13,7 +13,7 @@ function getNextKey() {
 }
 
 export async function generateReadmeSummary(text: string): Promise<string> {
-  const truncated = text.slice(0, 2000);
+  const truncated = text.slice(0, 5000);
   const prompt = `Summarize this repository's purpose and contribution scope in 2–3 lines:\n\n${truncated}`;
   const key = getNextKey();
 

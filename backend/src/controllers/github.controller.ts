@@ -18,8 +18,17 @@ interface GitHubRepoNode {
   licenseInfo: { key?: string; name?: string } | null;
   owner: { login: string };
   primaryLanguage?: { name: string };
-  openIssues: { totalCount: number };
-  openPRs: { totalCount: number };
+  issues: { totalCount: number };
+  pullRequests: { totalCount: number };
+  goodFirstIssues?: { totalCount: number };
+  helpWantedIssues?: { totalCount: number };
+  firstTimers?: { totalCount: number };
+  beginnerIssues?: { totalCount: number };
+  bugIssues?: { totalCount: number };
+  enhancementIssues?: { totalCount: number };
+  documentationIssues?: { totalCount: number };
+  refactorIssues?: { totalCount: number };
+  highPriorityIssues?: { totalCount: number };
   updatedAt: string;
   defaultBranchRef?: { target?: { committedDate: string } };
   repositoryTopics: { nodes: { topic: { name: string } }[] };
@@ -35,66 +44,145 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
   dateLimit.setDate(dateLimit.getDate() - 60);
   const dateString = dateLimit.toISOString().split("T")[0];
   const searchQuery = `language:${lang} stars:>${minStars} fork:false archived:false pushed:>=${dateString}`;
-  const query = `
-  query ($search: String!, $count: Int!) {
-    search(query: $search, type: REPOSITORY, first: $count) {
-      nodes {
-        ... on Repository {
-          id
-          name
-          url
-          description
-          stargazerCount
-          forkCount
-          isArchived
-          updatedAt
-          licenseInfo { key name }
-          owner { login }
-          primaryLanguage { name }
-          defaultBranchRef {
-            target {
-              ... on Commit { committedDate }
-            }
+  const query = `query ($search: String!, $count: Int!) {
+  search(query: $search, type: REPOSITORY, first: $count) {
+    nodes {
+      ... on Repository {
+        id
+        name
+        url
+        description
+        stargazerCount
+        forkCount
+        isArchived
+        updatedAt
+
+        licenseInfo { key name }
+        owner { login }
+        primaryLanguage { name }
+
+        defaultBranchRef {
+          target {
+            ... on Commit { committedDate }
           }
-          repositoryTopics(first: 5) {
-            nodes { topic { name } }
-          }
-          issues(states: OPEN) { totalCount }
-          pullRequests(states: OPEN) { totalCount }
+        }
+        repositoryTopics(first: 10) {
+          nodes { topic { name } }
+        }
+        issues(states: OPEN) {
+          totalCount
+        }
+
+        pullRequests(states: OPEN) {
+          totalCount
+        }
+        goodFirstIssues: issues(
+          labels: ["good first issue", "good-first-issue"]
+          states: OPEN
+        ) {
+          totalCount
+        }
+
+        helpWantedIssues: issues(
+          labels: ["help wanted", "help-wanted"]
+          states: OPEN
+        ) {
+          totalCount
+        }
+
+        firstTimers: issues(
+          labels: ["first-timers-only", "first timers only"]
+          states: OPEN
+        ) {
+          totalCount
+        }
+
+        beginnerIssues: issues(
+          labels: ["beginner", "easy"]
+          states: OPEN
+        ) {
+          totalCount
+        }
+        bugIssues: issues(labels: ["bug"], states: OPEN) {
+          totalCount
+        }
+
+        enhancementIssues: issues(labels: ["enhancement"], states: OPEN) {
+          totalCount
+        }
+
+        documentationIssues: issues(labels: ["documentation"], states: OPEN) {
+          totalCount
+        }
+
+        refactorIssues: issues(labels: ["refactor"], states: OPEN) {
+          totalCount
+        }
+
+        highPriorityIssues: issues(labels: ["high priority"], states: OPEN) {
+          totalCount
         }
       }
     }
   }
-`;
+}`;
 
   try {
     const response = await gh<GitHubResponse>(query, {
       search: searchQuery,
-      count: 50,
+      count: 5,
     });
 
     console.log(response.search.nodes[0]);
 
-    const repos = response.search.nodes.map((repo: any) => ({
-      repoId: repo.id,
-      repo_name: repo.name,
-      owner: repo.owner.login,
-      repo_url: repo.url,
-      description: repo.description || "No description provided.",
-      stars: repo.stargazerCount,
-      language: repo.primaryLanguage?.name || lang,
-      licenseInfo: repo.licenseInfo,
-      isArchived: repo.isArchived,
-      forkCount: repo.forkCount,
-      topics: repo.repositoryTopics.nodes.map((t: any) => t.topic.name),
-      issue_data: {
-        total_open_issues: repo.issues?.totalCount,
-        beginner_issues_count: 0,
-      },
-      open_prs: repo.pullRequests.totalCount,
-      last_commit: repo.defaultBranchRef?.target?.committedDate || null,
-      last_updated: repo.updatedAt,
-    }));
+    const repos = response.search.nodes.map((repo: any) => {
+      console.log({
+        name: repo.name,
+        gfi: repo.goodFirstIssues?.totalCount,
+        hw: repo.helpWantedIssues?.totalCount,
+      });
+
+      const issueData = {
+        total_open_issues: repo.issues?.totalCount || 0,
+        good_first_issue_count: repo.goodFirstIssues?.totalCount || 0,
+        help_wanted_count: repo.helpWantedIssues?.totalCount || 0,
+        first_timers_count: repo.firstTimers?.totalCount || 0,
+        beginner_count: repo.beginnerIssues?.totalCount || 0,
+        bug_count: repo.bugIssues?.totalCount || 0,
+        enhancement_count: repo.enhancementIssues?.totalCount || 0,
+        documentation_count: repo.documentationIssues?.totalCount || 0,
+        refactor_count: repo.refactorIssues?.totalCount || 0,
+        high_priority_count: repo.highPriorityIssues?.totalCount || 0,
+      };
+
+      const score =
+        repo.stargazerCount * 0.3 +
+        (repo.goodFirstIssues?.totalCount || 0) * 2 +
+        (repo.helpWantedIssues?.totalCount || 0) * 1.5 +
+        (repo.beginnerIssues?.totalCount || 0) * 1.5 +
+        (repo.firstTimers?.totalCount || 0) * 2 +
+        (repo.pullRequests?.totalCount || 0) * 0.5 +
+        (repo.issues?.totalCount || 0) * 0.2;
+
+      return {
+        repoId: repo.id,
+        repo_name: repo.name,
+        owner: repo.owner.login,
+        repo_url: repo.url,
+        description: repo.description || "No description provided.",
+        stars: repo.stargazerCount,
+        score: score,
+        language: repo.primaryLanguage?.name || lang,
+        licenseInfo: repo.licenseInfo,
+        isArchived: repo.isArchived,
+        forkCount: repo.forkCount,
+        topics: repo.repositoryTopics.nodes.map((t: any) => t.topic.name),
+        issue_data: issueData,
+        open_prs: repo.pullRequests.totalCount,
+        last_commit: repo.defaultBranchRef?.target?.committedDate || null,
+        last_updated: repo.updatedAt,
+      };
+    });
 
     const filtered = repos.filter((repo) => {
       const hasLicense = !!repo.licenseInfo?.key;
@@ -123,15 +211,19 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
       );
     });
 
-    await Project.bulkWrite(
-      filtered.map((repo) => ({
-        updateOne: {
-          filter: { repoId: repo.repoId },
-          update: { $set: repo },
-          upsert: true,
-        },
-      }))
-    );
+    filtered.map((repo) => {
+      console.log(repo);
+    });
+
+    // await Project.bulkWrite(
+    //   filtered.map((repo) => ({
+    //     updateOne: {
+    //       filter: { repoId: repo.repoId },
+    //       update: { $set: repo },
+    //       upsert: true,
+    //     },
+    //   }))
+    // );
 
     return filtered;
   } catch (error: any) {
