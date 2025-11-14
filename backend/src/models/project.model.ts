@@ -105,3 +105,4 @@ const projectSchema: Schema = new Schema(
 export const Project = mongoose.model<IProject>("projects", projectSchema);
 projectSchema.index({ language: 1 });
 projectSchema.index({ stars: -1 });
+projectSchema.index({ topics: 1 });

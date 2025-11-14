@@ -1,6 +1,7 @@
 import { Request, Response, Router } from "express";
 import { fetchRepos, getReposFromDb } from "../controllers/github.controller";
 import { Project } from "../models/project.model";
+import { getPopularTopics } from "../controllers/topics.controller";
 
 const router = Router();
 
@@ -19,4 +20,5 @@ router.get("/fetch", async (req: Request, res: Response) => {
 
 router.get("/repos", getReposFromDb);
 
+router.get("/topics/popular", getPopularTopics);
 export { router };
