@@ -276,8 +276,10 @@ export const getReposFromDb = async (req: Request, res: Response) => {
     sortBy = "stars",
     order = "desc",
     limit = 20,
+    page = 1,
     topic,
   } = req.query;
+  const skip = (Number(page) - 1) * Number(limit);
   const filter: any = {};
   if (lang) filter.language = { $regex: new RegExp(`^${lang}$`, "i") };
   if (topic) {
@@ -286,11 +288,14 @@ export const getReposFromDb = async (req: Request, res: Response) => {
   try {
     const repos = await Project.find(filter)
       .sort({ [sortBy as string]: order === "asc" ? 1 : -1 })
+      .skip(skip)
       .limit(Number(limit))
       .exec();
 
     return res.json({
       count: repos.length,
+      page: Number(page),
+      limit: Number(limit),
       data: repos,
     });
   } catch (error) {
