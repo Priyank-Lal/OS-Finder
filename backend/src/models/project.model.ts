@@ -37,6 +37,10 @@ export interface IProject extends Document {
     refactor_count: number;
     high_priority_count: number;
   };
+  activity: {
+    avg_pr_merge_hours: number;
+    pr_merge_ratio: number;
+  };
   summary: string;
   last_updated: Date;
   last_commit: Date;
@@ -78,6 +82,10 @@ const projectSchema: Schema = new Schema(
       documentation_count: { type: Number, default: 0 },
       refactor_count: { type: Number, default: 0 },
       high_priority_count: { type: Number, default: 0 },
+    },
+    activity: {
+      avg_pr_merge_hours: { type: Number, default: null },
+      pr_merge_ratio: { type: Number, default: 0 },
     },
     summary: {
       type: String,

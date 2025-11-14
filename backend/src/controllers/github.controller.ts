@@ -19,7 +19,12 @@ interface GitHubRepoNode {
   owner: { login: string };
   primaryLanguage?: { name: string };
   issues: { totalCount: number };
-  pullRequests: { totalCount: number };
+  openPRs?: { totalCount: number };
+  recentPRs?: {
+    totalCount: number;
+    nodes: { createdAt: string; mergedAt?: string }[];
+  };
+  pullRequests?: { totalCount: number };
   goodFirstIssues?: { totalCount: number };
   helpWantedIssues?: { totalCount: number };
   firstTimers?: { totalCount: number };
@@ -72,10 +77,21 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
         issues(states: OPEN) {
           totalCount
         }
+     openPRs: pullRequests(states: OPEN) {
+  totalCount
+}
 
-        pullRequests(states: OPEN) {
-          totalCount
-        }
+recentPRs: pullRequests(
+  states: [OPEN, MERGED, CLOSED]
+  first: 20
+  orderBy: { field: CREATED_AT, direction: DESC }
+) {
+  nodes {
+    createdAt
+    mergedAt
+  }
+  totalCount
+}
         goodFirstIssues: issues(
           labels: ["good first issue", "good-first-issue"]
           states: OPEN
@@ -136,12 +152,6 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
     console.log(response.search.nodes[0]);
 
     const repos = response.search.nodes.map((repo: any) => {
-      console.log({
-        name: repo.name,
-        gfi: repo.goodFirstIssues?.totalCount,
-        hw: repo.helpWantedIssues?.totalCount,
-      });
-
       const issueData = {
         total_open_issues: repo.issues?.totalCount || 0,
         good_first_issue_count: repo.goodFirstIssues?.totalCount || 0,
@@ -155,14 +165,38 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
         high_priority_count: repo.highPriorityIssues?.totalCount || 0,
       };
 
-      const score =
-        repo.stargazerCount * 0.3 +
+      const rawScore =
+        (repo.stargazerCount || 0) * 0.3 +
         (repo.goodFirstIssues?.totalCount || 0) * 2 +
         (repo.helpWantedIssues?.totalCount || 0) * 1.5 +
         (repo.beginnerIssues?.totalCount || 0) * 1.5 +
         (repo.firstTimers?.totalCount || 0) * 2 +
-        (repo.pullRequests?.totalCount || 0) * 0.5 +
+        (repo.recentPRs?.totalCount || 0) * 0.5 +
         (repo.issues?.totalCount || 0) * 0.2;
+
+      const score = Number(rawScore.toFixed(2));
+
+      const mergeTimes: number[] = (repo.recentPRs?.nodes || [])
+        .filter((pr: any) => pr.mergedAt)
+        .map(
+          (pr: any) =>
+            (new Date(pr.mergedAt!).getTime() -
+              new Date(pr.createdAt).getTime()) /
+            36e5
+        );
+
+      const avgMergeTime = mergeTimes.length
+        ? Number(
+            (mergeTimes.reduce((a, b) => a + b, 0) / mergeTimes.length).toFixed(
+              2
+            )
+          )
+        : null;
+
+      const prMergeRatio = (repo.recentPRs?.nodes || []).length
+        ? (repo.recentPRs?.nodes || []).filter((pr: any) => pr.mergedAt)
+            .length / (repo.recentPRs?.nodes || []).length
+        : 0;
 
       return {
         repoId: repo.id,
@@ -178,7 +212,11 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
         forkCount: repo.forkCount,
         topics: repo.repositoryTopics.nodes.map((t: any) => t.topic.name),
         issue_data: issueData,
-        open_prs: repo.pullRequests.totalCount,
+        activity: {
+          avg_pr_merge_hours: avgMergeTime,
+          pr_merge_ratio: prMergeRatio,
+        },
+        open_prs: repo.openPRs?.totalCount || 0,
         last_commit: repo.defaultBranchRef?.target?.committedDate || null,
         last_updated: repo.updatedAt,
       };
