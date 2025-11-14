@@ -271,7 +271,13 @@ recentPRs: pullRequests(
 };
 
 export const getReposFromDb = async (req: Request, res: Response) => {
-  const { lang, sortBy = "stars", order = "desc", limit = 20, topic } = req.query;
+  const {
+    lang,
+    sortBy = "stars",
+    order = "desc",
+    limit = 20,
+    topic,
+  } = req.query;
   const filter: any = {};
   if (lang) filter.language = { $regex: new RegExp(`^${lang}$`, "i") };
   if (topic) {
@@ -289,5 +295,17 @@ export const getReposFromDb = async (req: Request, res: Response) => {
     });
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch repos", error });
+  }
+};
+
+export const getRepoById = async (req: Request, res: Response) => {
+  try {
+    const repo = await Project.findOne({ repoId: req.params.id });
+
+    if (!repo) return res.status(404).json({ message: "Repo not found" });
+
+    return res.json(repo);
+  } catch (err) {
+    return res.status(500).json({ message: "Failed", err });
   }
 };
