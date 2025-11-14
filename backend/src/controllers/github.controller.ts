@@ -271,10 +271,12 @@ recentPRs: pullRequests(
 };
 
 export const getReposFromDb = async (req: Request, res: Response) => {
-  const { lang, sortBy = "stars", order = "desc", limit = 20 } = req.query;
+  const { lang, sortBy = "stars", order = "desc", limit = 20, topic } = req.query;
   const filter: any = {};
   if (lang) filter.language = { $regex: new RegExp(`^${lang}$`, "i") };
-
+  if (topic) {
+    filter.topics = { $regex: new RegExp(topic as string, "i") };
+  }
   try {
     const repos = await Project.find(filter)
       .sort({ [sortBy as string]: order === "asc" ? 1 : -1 })
