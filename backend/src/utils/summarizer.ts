@@ -30,10 +30,13 @@ async function summarizeRepo(repo: any) {
   const readme = await fetchReadme(owner, name);
   if (!readme) return;
 
-  const summary = await generateReadmeSummary(readme);
-  if (!summary) return;
+  const result = await generateReadmeSummary(readme);
+  if (!result) return;
 
-  await Project.updateOne({ _id: repo._id }, { $set: { summary } });
+  await Project.updateOne(
+    { _id: repo._id },
+    { $set: { summary: result.summary, summary_level: result.level } }
+  );
 
   console.log(`Summarized Repo: ${repo.repo_name}`);
 }

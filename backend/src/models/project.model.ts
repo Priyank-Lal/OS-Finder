@@ -15,6 +15,7 @@ export interface IProject extends Document {
   stars: number;
   score: number;
   contributors: number;
+  has_contributing: boolean;
 
   // // Custom Calculated Health Metrics (Yeh aapke project ka USP hai)
   // health_metrics: {
@@ -83,13 +84,22 @@ const projectSchema: Schema = new Schema(
       refactor_count: { type: Number, default: 0 },
       high_priority_count: { type: Number, default: 0 },
     },
+    beginner_issue_total: { type: Number, default: 0 },
+    beginner_issue_score: { type: Number, default: 0 },
+    accessibility_score_base: { type: Number, default: 0 },
+    has_contributing: {
+      type: Boolean,
+      default: false,
+    },
     activity: {
       avg_pr_merge_hours: { type: Number, default: null },
       pr_merge_ratio: { type: Number, default: 0 },
     },
-    summary: {
+    summary: { type: String, default: "" },
+    summary_level: {
       type: String,
-      default: "",
+      enum: ["beginner", "intermediate", "advanced"],
+      default: "intermediate",
     },
     last_updated: {
       type: Date,

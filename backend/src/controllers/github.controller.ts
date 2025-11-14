@@ -37,6 +37,8 @@ interface GitHubRepoNode {
   updatedAt: string;
   defaultBranchRef?: { target?: { committedDate: string } };
   repositoryTopics: { nodes: { topic: { name: string } }[] };
+  contributing?: { text?: string } | null;
+  contributors?: { totalCount: number };
 }
 interface GitHubResponse {
   search: {
@@ -73,6 +75,14 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
         }
         repositoryTopics(first: 10) {
           nodes { topic { name } }
+        }
+        contributing: object(expression: "HEAD:CONTRIBUTING.md") {
+          ... on Blob {
+            text
+          }
+        }
+        contributors: mentionableUsers(first: 1) {
+          totalCount
         }
         issues(states: OPEN) {
           totalCount
@@ -165,6 +175,19 @@ recentPRs: pullRequests(
         high_priority_count: repo.highPriorityIssues?.totalCount || 0,
       };
 
+      const hasContributing = !!repo.contributing?.text;
+
+      const beginnerTotal =
+        (repo.goodFirstIssues?.totalCount || 0) +
+        (repo.helpWantedIssues?.totalCount || 0) +
+        (repo.firstTimers?.totalCount || 0) +
+        (repo.beginnerIssues?.totalCount || 0) +
+        (repo.documentationIssues?.totalCount || 0);
+
+      const beginnerScore = beginnerTotal * 2;
+
+      const accessibilityBase = beginnerScore + (hasContributing ? 10 : 0);
+
       const rawScore =
         (repo.stargazerCount || 0) * 0.3 +
         (repo.goodFirstIssues?.totalCount || 0) * 2 +
@@ -208,10 +231,15 @@ recentPRs: pullRequests(
         score: score,
         language: repo.primaryLanguage?.name || lang,
         licenseInfo: repo.licenseInfo,
+        has_contributing: hasContributing,
+        contributors: repo.contributors?.totalCount || 0,
         isArchived: repo.isArchived,
         forkCount: repo.forkCount,
         topics: repo.repositoryTopics.nodes.map((t: any) => t.topic.name),
         issue_data: issueData,
+        beginner_issue_total: beginnerTotal,
+        beginner_issue_score: beginnerScore,
+        accessibility_score_base: accessibilityBase,
         activity: {
           avg_pr_merge_hours: avgMergeTime,
           pr_merge_ratio: prMergeRatio,
@@ -223,29 +251,44 @@ recentPRs: pullRequests(
     });
 
     const filtered = repos.filter((repo) => {
+      // Remove extremely low-accessibility repos
+      if (repo.accessibility_score_base < 5) return false;
+
+      // Last commit recency check (reject older than 120 days)
+      const lastCommit = repo.last_commit ? new Date(repo.last_commit) : null;
+      if (!lastCommit) return false;
+      const diffDays = (Date.now() - lastCommit.getTime()) / (1000 * 60 * 60 * 24);
+      if (diffDays > 120) return false;
+
+      // Reject repos with extremely low contributor count
+      if (repo.contributors < 2) return false;
+
       const hasLicense = !!repo.licenseInfo?.key;
-      const badNames = [
-        "guide",
-        "tutorial",
-        "book",
-        "list",
-        "interview",
-        "awesome",
-      ];
-      const isBadType = badNames.some(
-        (n) =>
-          repo.repo_name.toLowerCase().includes(n) ||
-          repo.description?.toLowerCase().includes(n)
-      );
+      const forbiddenExact = ["guide", "tutorial", "book", "roadmap"];
+      const isExactBad =
+        forbiddenExact.includes(repo.repo_name.toLowerCase()) ||
+        forbiddenExact.includes((repo.description || "").toLowerCase());
+
+      const isAwesomeList =
+        repo.repo_name.toLowerCase().startsWith("awesome-") ||
+        (repo.description || "").toLowerCase().startsWith("awesome-");
+
+      const isBadType = isExactBad || isAwesomeList;
+
+      let allowedStars = 20;
+
+      if (repo.has_contributing) {
+        allowedStars = 10;
+      }
 
       return (
         hasLicense &&
         !repo.isArchived &&
         !isBadType &&
-        repo.forkCount > 5 &&
-        repo.stars > 100 &&
+        repo.forkCount > 2 &&
+        repo.stars > allowedStars &&
         repo.issue_data.total_open_issues &&
-        repo.issue_data.total_open_issues > 10
+        repo.issue_data.total_open_issues > 5
       );
     });
 

@@ -3,7 +3,7 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "module": "commonjs",
-    "target": "es2024",
+    "target": "es2022",
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true

@@ -1,3 +1,10 @@
+function sanitizeJSON(raw: string) {
+  return raw
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .replace(/`/g, "")
+    .trim();
+}
 import { _config } from "../config/config";
 import { GoogleGenAI } from "@google/genai";
 
@@ -12,25 +19,49 @@ function getNextKey() {
   return key;
 }
 
-export async function generateReadmeSummary(text: string): Promise<string> {
+export async function generateReadmeSummary(text: string): Promise<{
+  summary: string;
+  level: "beginner" | "intermediate" | "advanced";
+}> {
   const truncated = text.slice(0, 5000);
-  const prompt = `Summarize this repository's purpose and contribution scope in 2–3 lines:\n\n${truncated}`;
+
+  const prompt = `You MUST respond ONLY with RAW JSON. Absolutely NO markdown, NO backticks, NO code fences, NO explanations.
+
+Output format:
+{
+  "summary": "a good summary of the repository's purpose and typical contribution areas.",
+  "level": "beginner" | "intermediate" | "advanced"
+}
+
+Classification rules:
+- beginner: small/simple repo, easy contributions.
+- intermediate: moderate complexity.
+- advanced: large or framework-level.
+
+README CONTENT (truncate if needed):
+${truncated}`;
+
   const key = getNextKey();
 
   try {
-    const ai = new GoogleGenAI({
-      apiKey: key,
-    });
+    const ai = new GoogleGenAI({ apiKey: key });
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-lite",
       contents: prompt,
     });
-    const summary = response?.text?.trim();
 
-    return summary ?? "";
+    const raw = response?.text || "";
+    const cleaned = sanitizeJSON(raw);
+    const parsed = JSON.parse(cleaned);
+
+    return {
+      summary: parsed.summary || "",
+      level: parsed.level || "intermediate",
+    };
   } catch (err: any) {
     console.error(`Gemini error (${key.slice(0, 6)}…):`, err.message);
-    return "";
+    return { summary: "", level: "intermediate" };
   }
 }
+
