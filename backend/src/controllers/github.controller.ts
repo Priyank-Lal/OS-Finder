@@ -296,15 +296,15 @@ recentPRs: pullRequests(
       console.log(repo);
     });
 
-    // await Project.bulkWrite(
-    //   filtered.map((repo) => ({
-    //     updateOne: {
-    //       filter: { repoId: repo.repoId },
-    //       update: { $set: repo },
-    //       upsert: true,
-    //     },
-    //   }))
-    // );
+    await Project.bulkWrite(
+      filtered.map((repo) => ({
+        updateOne: {
+          filter: { repoId: repo.repoId },
+          update: { $set: repo },
+          upsert: true,
+        },
+      }))
+    );
 
     return filtered;
   } catch (error: any) {

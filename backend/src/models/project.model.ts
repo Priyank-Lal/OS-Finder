@@ -14,18 +14,9 @@ export interface IProject extends Document {
   open_prs: number;
   stars: number;
   score: number;
+  final_score: number;
   contributors: number;
   has_contributing: boolean;
-
-  // // Custom Calculated Health Metrics (Yeh aapke project ka USP hai)
-  // health_metrics: {
-  //   last_calculated: Date;
-  //   responsiveness_score: number; // Avg time to close a PR (in hours)
-  //   activity_score: number; // Unique contributors in last X days
-  //   stale_issue_ratio: number; // % of issues with no activity
-  // };
-
-  // Basic GitHub Data
   issue_data: {
     total_open_issues: number;
     good_first_issue_count: number;
@@ -38,11 +29,15 @@ export interface IProject extends Document {
     refactor_count: number;
     high_priority_count: number;
   };
+  beginner_issue_total: number;
+  beginner_issue_score: number;
+  accessibility_score_base: number;
   activity: {
     avg_pr_merge_hours: number;
     pr_merge_ratio: number;
   };
   summary: string;
+  summary_level: string;
   last_updated: Date;
   last_commit: Date;
 }
@@ -71,7 +66,12 @@ const projectSchema: Schema = new Schema(
     open_prs: { type: Number, default: 0 },
     stars: { type: Number, default: 0 },
     score: { type: Number, default: 0 },
+    final_score: { type: Number, default: 0 },
     contributors: { type: Number, default: 0 },
+    has_contributing: {
+      type: Boolean,
+      default: false,
+    },
     issue_data: {
       total_open_issues: { type: Number, default: 0 },
       good_first_issue_count: { type: Number, default: 0 },
@@ -87,10 +87,6 @@ const projectSchema: Schema = new Schema(
     beginner_issue_total: { type: Number, default: 0 },
     beginner_issue_score: { type: Number, default: 0 },
     accessibility_score_base: { type: Number, default: 0 },
-    has_contributing: {
-      type: Boolean,
-      default: false,
-    },
     activity: {
       avg_pr_merge_hours: { type: Number, default: null },
       pr_merge_ratio: { type: Number, default: 0 },
