@@ -8,6 +8,20 @@ const gh = graphql.defaults({
   headers: { authorization: `token ${_config.GITHUB_TOKEN}` },
 });
 
+async function safeGithubQuery(
+  query: string,
+  variables: any,
+  retries = 2
+): Promise<any> {
+  try {
+    return await gh(query, variables);
+  } catch (err: any) {
+    if (retries <= 0) throw err;
+    await new Promise((res) => setTimeout(res, 1000));
+    return safeGithubQuery(query, variables, retries - 1);
+  }
+}
+
 interface GitHubRepoNode {
   id: number;
   name: string;
@@ -155,7 +169,7 @@ recentPRs: pullRequests(
 }`;
 
   try {
-    const response = await gh<GitHubResponse>(query, {
+    const response = await safeGithubQuery(query, {
       search: searchQuery,
       count: 3,
     });
@@ -261,23 +275,26 @@ recentPRs: pullRequests(
         complexity: scores.complexity,
         ai_categories: repo.ai_categories || [],
         difficulty_level:
-          scores.friendliness >= 0.6 ? "beginner" :
-          scores.complexity >= 0.6 ? "advanced" :
-          "intermediate",
+          scores.friendliness >= 0.6
+            ? "beginner"
+            : scores.complexity >= 0.6
+            ? "advanced"
+            : "intermediate",
         open_prs: repo.openPRs?.totalCount || 0,
         last_commit: repo.defaultBranchRef?.target?.committedDate || null,
         last_updated: repo.updatedAt,
       };
     });
 
-    const filtered = repos.filter((repo) => {
+    const filtered = repos.filter((repo: any) => {
       if (repo.accessibility < 0.2) return false;
       if (repo.maintenance < 0.2) return false;
 
       // Last commit recency check (reject older than 120 days)
       const lastCommit = repo.last_commit ? new Date(repo.last_commit) : null;
       if (!lastCommit) return false;
-      const diffDays = (Date.now() - lastCommit.getTime()) / (1000 * 60 * 60 * 24);
+      const diffDays =
+        (Date.now() - lastCommit.getTime()) / (1000 * 60 * 60 * 24);
       if (diffDays > 120) return false;
 
       // Reject repos with extremely low contributor count
@@ -295,32 +312,20 @@ recentPRs: pullRequests(
 
       const isBadType = isExactBad || isAwesomeList;
 
-      let allowedStars = 20;
-
-      if (repo.has_contributing) {
-        allowedStars = 10;
-      }
-
-      return (
-        hasLicense &&
-        !repo.isArchived &&
-        !isBadType &&
-        repo.forkCount > 2 &&
-        repo.stars > allowedStars &&
-        repo.issue_data.total_open_issues &&
-        repo.issue_data.total_open_issues > 5
-      );
+      return hasLicense && !repo.isArchived && !isBadType;
     });
 
-    filtered.map((repo) => {
+    filtered.map((repo: any) => {
       console.log(repo);
     });
 
     await Project.bulkWrite(
-      filtered.map((repo) => ({
+      filtered.map((repo: any) => ({
         updateOne: {
           filter: { repoId: repo.repoId },
-          update: { $set: { ...repo, ai_categories: repo.ai_categories || [] } },
+          update: {
+            $set: { ...repo, ai_categories: repo.ai_categories || [] },
+          },
           upsert: true,
         },
       }))
@@ -334,37 +339,49 @@ recentPRs: pullRequests(
 };
 
 export const getReposFromDb = async (req: Request, res: Response) => {
-  const {
-    lang,
-    limit = 20,
-    page = 1,
-    topic,
-    level,
-  } = req.query;
+  const { lang, limit = 20, page = 1, topic, level } = req.query;
 
-  const selectedLevel = typeof level === "string" ? level.toLowerCase() : "intermediate";
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 50));
+  const safePage = Math.max(1, Number(page) || 1);
+
+  const allowedLevels = ["beginner", "intermediate", "advanced"];
+  const selectedLevelRaw =
+    typeof level === "string" ? level.toLowerCase() : "intermediate";
+  const selectedLevel = allowedLevels.includes(selectedLevelRaw)
+    ? selectedLevelRaw
+    : "intermediate";
 
   function computeLevelScore(repo: any) {
     if (selectedLevel === "beginner") {
-      return repo.friendliness * 0.6 + repo.accessibility * 0.3 + repo.maintenance * 0.1;
+      return (
+        repo.friendliness * 0.6 +
+        repo.accessibility * 0.3 +
+        repo.maintenance * 0.1
+      );
     }
     if (selectedLevel === "advanced") {
       return repo.complexity * 0.5 + repo.maintenance * 0.5;
     }
-    return repo.maintenance * 0.5 + repo.accessibility * 0.3 + repo.complexity * 0.2;
+    return (
+      repo.maintenance * 0.5 + repo.accessibility * 0.3 + repo.complexity * 0.2
+    );
   }
 
-  const skip = (Number(page) - 1) * Number(limit);
+  const skip = (safePage - 1) * safeLimit;
   const filter: any = {};
   if (lang) filter.language = { $regex: new RegExp(`^${lang}$`, "i") };
   if (topic) {
     filter.topics = { $regex: new RegExp(topic as string, "i") };
   }
+  const category = req.query.category;
+  if (category) {
+    filter.$or = [
+      { ai_categories: { $regex: new RegExp(category as string, "i") } },
+      { topics: { $regex: new RegExp(category as string, "i") } },
+    ];
+  }
   try {
-    const repos = await Project.find(filter)
-      .skip(skip)
-      .limit(Number(limit))
-      .exec();
+    const repos = await Project.find(filter).skip(skip).limit(safeLimit).exec();
 
     const scored = repos
       .map((repo: any) => {
@@ -373,17 +390,19 @@ export const getReposFromDb = async (req: Request, res: Response) => {
           ...obj,
           level_score: computeLevelScore(obj),
           difficulty_level:
-            obj.friendliness >= 0.6 ? "beginner" :
-            obj.complexity >= 0.6 ? "advanced" :
-            "intermediate",
+            obj.friendliness >= 0.6
+              ? "beginner"
+              : obj.complexity >= 0.6
+              ? "advanced"
+              : "intermediate",
         };
       })
       .sort((a, b) => b.level_score - a.level_score);
 
     return res.json({
       count: repos.length,
-      page: Number(page),
-      limit: Number(limit),
+      page: safePage,
+      limit: safeLimit,
       data: scored,
     });
   } catch (error) {
