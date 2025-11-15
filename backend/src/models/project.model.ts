@@ -15,6 +15,11 @@ export interface IProject extends Document {
   stars: number;
   score: number;
   final_score: number;
+  friendliness: number;
+  maintenance: number;
+  accessibility: number;
+  complexity: number;
+  ai_categories: string[];
   contributors: number;
   has_contributing: boolean;
   issue_data: {
@@ -67,6 +72,11 @@ const projectSchema: Schema = new Schema(
     stars: { type: Number, default: 0 },
     score: { type: Number, default: 0 },
     final_score: { type: Number, default: 0 },
+    friendliness: { type: Number, default: 0 },
+    maintenance: { type: Number, default: 0 },
+    accessibility: { type: Number, default: 0 },
+    complexity: { type: Number, default: 0 },
+    ai_categories: { type: [String], default: [] },
     contributors: { type: Number, default: 0 },
     has_contributing: {
       type: Boolean,

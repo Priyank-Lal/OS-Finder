@@ -22,6 +22,7 @@ function getNextKey() {
 export async function generateReadmeSummary(text: string): Promise<{
   summary: string;
   level: "beginner" | "intermediate" | "advanced";
+  repo_categories: string[];
 }> {
   const truncated = text.slice(0, 5000);
 
@@ -29,14 +30,21 @@ export async function generateReadmeSummary(text: string): Promise<{
 
 Output format:
 {
-  "summary": "a good summary of the repository's purpose and typical contribution areas.",
-  "level": "beginner" | "intermediate" | "advanced"
+  "summary": "a concise summary of the repository's purpose and contribution areas.",
+  "level": "beginner" | "intermediate" | "advanced",
+  "repo_categories": ["category1", "category2", "category3"]
 }
 
+Category rules:
+- Provide 1 to 3 categories max.
+- Categories should be short, lowercase, and hyphen-separated (e.g., "devtool", "cli", "web-framework", "ml-library", "database-tool").
+- Do NOT invent overly specific or obscure categories.
+- Prefer: cli, devtool, web-framework, backend, frontend, ml, testing, api-wrapper, utility, database, documentation, security, devops, mobile, cloud-sdk, package-manager.
+
 Classification rules:
-- beginner: small/simple repo, easy contributions.
-- intermediate: moderate complexity.
-- advanced: large or framework-level.
+- beginner: simple repositories with accessible contribution paths.
+- intermediate: moderately complex repos with structured contribution areas.
+- advanced: large frameworks, tools, or multi-module systems.
 
 README CONTENT (truncate if needed):
 ${truncated}`;
@@ -58,10 +66,10 @@ ${truncated}`;
     return {
       summary: parsed.summary || "",
       level: parsed.level || "intermediate",
+      repo_categories: parsed.repo_categories || [],
     };
   } catch (err: any) {
     console.error(`Gemini error (${key.slice(0, 6)}…):`, err.message);
-    return { summary: "", level: "intermediate" };
+    return { summary: "", level: "intermediate", repo_categories: [] };
   }
 }
-

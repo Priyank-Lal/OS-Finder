@@ -2,6 +2,7 @@ import { Project, IProject } from "../models/project.model";
 import { _config } from "../config/config";
 import { graphql } from "@octokit/graphql";
 import { Request, Response } from "express";
+import { computeScores } from "../utils/scoring";
 
 const gh = graphql.defaults({
   headers: { authorization: `token ${_config.GITHUB_TOKEN}` },
@@ -156,7 +157,7 @@ recentPRs: pullRequests(
   try {
     const response = await gh<GitHubResponse>(query, {
       search: searchQuery,
-      count: 5,
+      count: 3,
     });
 
     console.log(response.search.nodes[0]);
@@ -221,6 +222,20 @@ recentPRs: pullRequests(
             .length / (repo.recentPRs?.nodes || []).length
         : 0;
 
+      const scores = computeScores({
+        ...repo,
+        issue_data: issueData,
+        has_contributing: hasContributing,
+        contributors: repo.contributors?.totalCount || 0,
+        stars: repo.stargazerCount,
+        summary_level: repo.summary_level || "intermediate",
+        beginner_issue_total: beginnerTotal,
+        activity: {
+          avg_pr_merge_hours: avgMergeTime,
+          pr_merge_ratio: prMergeRatio,
+        },
+      } as any);
+
       return {
         repoId: repo.id,
         repo_name: repo.name,
@@ -228,7 +243,6 @@ recentPRs: pullRequests(
         repo_url: repo.url,
         description: repo.description || "No description provided.",
         stars: repo.stargazerCount,
-        score: score,
         language: repo.primaryLanguage?.name || lang,
         licenseInfo: repo.licenseInfo,
         has_contributing: hasContributing,
@@ -237,13 +251,19 @@ recentPRs: pullRequests(
         forkCount: repo.forkCount,
         topics: repo.repositoryTopics.nodes.map((t: any) => t.topic.name),
         issue_data: issueData,
-        beginner_issue_total: beginnerTotal,
-        beginner_issue_score: beginnerScore,
-        accessibility_score_base: accessibilityBase,
         activity: {
           avg_pr_merge_hours: avgMergeTime,
           pr_merge_ratio: prMergeRatio,
         },
+        friendliness: scores.friendliness,
+        maintenance: scores.maintenance,
+        accessibility: scores.accessibility,
+        complexity: scores.complexity,
+        ai_categories: repo.ai_categories || [],
+        difficulty_level:
+          scores.friendliness >= 0.6 ? "beginner" :
+          scores.complexity >= 0.6 ? "advanced" :
+          "intermediate",
         open_prs: repo.openPRs?.totalCount || 0,
         last_commit: repo.defaultBranchRef?.target?.committedDate || null,
         last_updated: repo.updatedAt,
@@ -251,8 +271,8 @@ recentPRs: pullRequests(
     });
 
     const filtered = repos.filter((repo) => {
-      // Remove extremely low-accessibility repos
-      if (repo.accessibility_score_base < 5) return false;
+      if (repo.accessibility < 0.2) return false;
+      if (repo.maintenance < 0.2) return false;
 
       // Last commit recency check (reject older than 120 days)
       const lastCommit = repo.last_commit ? new Date(repo.last_commit) : null;
@@ -300,7 +320,7 @@ recentPRs: pullRequests(
       filtered.map((repo) => ({
         updateOne: {
           filter: { repoId: repo.repoId },
-          update: { $set: repo },
+          update: { $set: { ...repo, ai_categories: repo.ai_categories || [] } },
           upsert: true,
         },
       }))
@@ -316,12 +336,24 @@ recentPRs: pullRequests(
 export const getReposFromDb = async (req: Request, res: Response) => {
   const {
     lang,
-    sortBy = "stars",
-    order = "desc",
     limit = 20,
     page = 1,
     topic,
+    level,
   } = req.query;
+
+  const selectedLevel = typeof level === "string" ? level.toLowerCase() : "intermediate";
+
+  function computeLevelScore(repo: any) {
+    if (selectedLevel === "beginner") {
+      return repo.friendliness * 0.6 + repo.accessibility * 0.3 + repo.maintenance * 0.1;
+    }
+    if (selectedLevel === "advanced") {
+      return repo.complexity * 0.5 + repo.maintenance * 0.5;
+    }
+    return repo.maintenance * 0.5 + repo.accessibility * 0.3 + repo.complexity * 0.2;
+  }
+
   const skip = (Number(page) - 1) * Number(limit);
   const filter: any = {};
   if (lang) filter.language = { $regex: new RegExp(`^${lang}$`, "i") };
@@ -330,16 +362,29 @@ export const getReposFromDb = async (req: Request, res: Response) => {
   }
   try {
     const repos = await Project.find(filter)
-      .sort({ [sortBy as string]: order === "asc" ? 1 : -1 })
       .skip(skip)
       .limit(Number(limit))
       .exec();
+
+    const scored = repos
+      .map((repo: any) => {
+        const obj = repo.toObject();
+        return {
+          ...obj,
+          level_score: computeLevelScore(obj),
+          difficulty_level:
+            obj.friendliness >= 0.6 ? "beginner" :
+            obj.complexity >= 0.6 ? "advanced" :
+            "intermediate",
+        };
+      })
+      .sort((a, b) => b.level_score - a.level_score);
 
     return res.json({
       count: repos.length,
       page: Number(page),
       limit: Number(limit),
-      data: repos,
+      data: scored,
     });
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch repos", error });

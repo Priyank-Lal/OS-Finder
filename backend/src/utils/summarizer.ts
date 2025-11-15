@@ -35,7 +35,13 @@ async function summarizeRepo(repo: any) {
 
   await Project.updateOne(
     { _id: repo._id },
-    { $set: { summary: result.summary, summary_level: result.level } }
+    {
+      $set: {
+        summary: result.summary,
+        summary_level: result.level,
+        ai_categories: result.repo_categories,
+      },
+    }
   );
 
   console.log(`Summarized Repo: ${repo.repo_name}`);
