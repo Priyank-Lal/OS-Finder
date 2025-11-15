@@ -1,38 +1,43 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 
-interface UseRepoParams {
-  repoId?: string;
-  enabled?: boolean;
+interface UseReposParams {
+  lang?: string;
+  page?: number;
+  category?: string;
+  topic?: string;
+  level?: string;
+  sortBy?: string;
+  search?: string;
 }
 
-export function useRepo({ repoId, enabled = true }: UseRepoParams = {}) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+export function useRepos({
+  lang = "all",
+  page = 1,
+  category,
+  topic,
+  level = "all",
+  sortBy = "relevance",
+  search = "",
+}: UseReposParams = {}) {
+  return useQuery({
+    queryKey: ["repos", { lang, page, category, topic, level, sortBy, search }],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        lang,
+        page: String(page),
+        sortBy,
+        ...(category && { category }),
+        ...(topic && { topic }),
+        ...(level !== "all" && { level }),
+        ...(search && { search }),
+      });
 
-  useEffect(() => {
-    if (!repoId || !enabled) return;
-
-    const fetchRepo = async () => {
-      try {
-        setLoading(true);
-        // Replace with actual API endpoint
-        const response = await fetch(`/api/repos/${repoId}`);
-        if (!response.ok) throw new Error("Failed to fetch repository");
-
-        const repo = await response.json();
-        setData(repo);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error("Unknown error"));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRepo();
-  }, [repoId, enabled]);
-
-  return { data, loading, error };
+      const response = await fetch(`/api/repos?${params}`);
+      if (!response.ok) throw new Error("Failed to fetch repositories");
+      return response.json();
+    },
+    // keepPreviousData: true, // Show cached data while fetching new page
+  });
 }
