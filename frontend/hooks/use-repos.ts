@@ -1,5 +1,6 @@
 "use client";
 
+import { getRepos } from "@/api/api";
 import { useQuery } from "@tanstack/react-query";
 
 interface UseReposParams {
@@ -13,31 +14,31 @@ interface UseReposParams {
 }
 
 export function useRepos({
-  lang = "all",
+  lang = "",
   page = 1,
   category,
   topic,
-  level = "all",
-  sortBy = "relevance",
+  level = "",
+  sortBy = "stars",
   search = "",
 }: UseReposParams = {}) {
   return useQuery({
     queryKey: ["repos", { lang, page, category, topic, level, sortBy, search }],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        lang,
+      const queryParams: Record<string, any> = {
         page: String(page),
-        sortBy,
-        ...(category && { category }),
-        ...(topic && { topic }),
-        ...(level !== "all" && { level }),
-        ...(search && { search }),
-      });
+        limit: "20",
+      };
 
-      const response = await fetch(`/api/repos?${params}`);
-      if (!response.ok) throw new Error("Failed to fetch repositories");
-      return response.json();
+      if (lang) queryParams.lang = lang;
+      if (category) queryParams.category = category;
+      if (topic) queryParams.topic = topic;
+      if (level) queryParams.level = level;
+
+      const response = await getRepos(queryParams);
+      return response;
     },
-    // keepPreviousData: true, // Show cached data while fetching new page
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 }

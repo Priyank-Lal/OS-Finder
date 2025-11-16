@@ -1,5 +1,6 @@
 "use client";
 
+import { getRepoById } from "@/api/api";
 import { useQuery } from "@tanstack/react-query";
 
 interface UseRepoParams {
@@ -11,11 +12,12 @@ export function useRepo({ repoId, enabled = true }: UseRepoParams = {}) {
   return useQuery({
     queryKey: ["repo", repoId],
     queryFn: async () => {
-      const response = await fetch(`/api/repos/${repoId}`);
-      if (!response.ok) throw new Error("Failed to fetch repository");
-      return response.json();
+      if (!repoId) throw new Error("repoId is required");
+      const response = await getRepoById(repoId);
+      return response;
     },
-    enabled: !!repoId && enabled, // Only fetch if repoId exists and enabled is true
-    staleTime: 300_000, // 5 minutes
+    enabled: !!repoId && enabled,
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
   });
 }

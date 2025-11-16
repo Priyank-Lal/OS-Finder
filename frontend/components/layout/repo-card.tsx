@@ -68,7 +68,7 @@ export default function RepoCard({ repo }: RepoCardProps) {
 
           {/* Categories */}
           <div className="flex flex-wrap gap-1">
-            {repo.categories.slice(0, 2).map((cat) => (
+            {repo.categories?.slice(0, 2).map((cat) => (
               <Badge
                 key={cat}
                 variant="secondary"
@@ -77,7 +77,7 @@ export default function RepoCard({ repo }: RepoCardProps) {
                 {cat}
               </Badge>
             ))}
-            {repo.categories.length > 2 && (
+            {repo.categories?.length > 2 && (
               <Badge variant="secondary" className="text-xs">
                 +{repo.categories.length - 2}
               </Badge>

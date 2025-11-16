@@ -10,31 +10,25 @@ import { useRepos } from "@/hooks/use-repos";
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState("all");
-  const [selectedDifficulty, setSelectedDifficulty] = useState("all");
+  const [selectedLanguage, setSelectedLanguage] = useState("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState("relevance");
+  const [sortBy, setSortBy] = useState("stars");
   const [page, setPage] = useState(1);
-
   const queryResult = useRepos({
-    lang: selectedLanguage,
+    lang: selectedLanguage === "all" ? "" : selectedLanguage,
     page,
     category: selectedCategory || undefined,
-    level: selectedDifficulty,
+    level: selectedDifficulty === "all" ? "" : selectedDifficulty,
     sortBy,
     search: searchQuery,
   });
+  const { data: reposData, isLoading, isError, error } = queryResult;
 
-  const {
-    data: reposData,
-    isLoading,
-    isError,
-    error,
-  } = queryResult;
 
   const isPreviousData = (queryResult as any)?.isPreviousData ?? false;
 
-  const repos = reposData?.repos || [];
+  const repos = reposData?.data || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -78,8 +72,9 @@ export default function HomePage() {
               <p className="text-destructive">Error: {error?.message}</p>
             </div>
           ) : repos.length > 0 ? (
-            repos.map((repo: any) => <RepoCard key={repo.id} repo={repo} />)
+            repos.map((repo: any) => <RepoCard key={repo._id} repo={repo} />)
           ) : (
+
             <div className="col-span-full text-center py-12">
               <p className="text-muted-foreground text-lg">
                 No repositories found. Try adjusting your filters.

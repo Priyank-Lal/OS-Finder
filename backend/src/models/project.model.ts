@@ -6,7 +6,10 @@ export interface IProject extends Document {
   repo_url: string;
   owner: string;
   language: string;
-  licenseInfo: object;
+  licenseInfo: {
+    name: string;
+    key: any
+  };
   isArchived: boolean;
   forkCount: number;
   topics: string[];
