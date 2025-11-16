@@ -4,69 +4,7 @@ import { graphql } from "@octokit/graphql";
 import { Request, Response } from "express";
 import { computeScores } from "../utils/scoring";
 
-const gh = graphql.defaults({
-  headers: { authorization: `token ${_config.GITHUB_TOKEN}` },
-});
-
-async function safeGithubQuery(
-  query: string,
-  variables: any,
-  retries = 2
-): Promise<any> {
-  try {
-    return await gh(query, variables);
-  } catch (err: any) {
-    if (retries <= 0) throw err;
-    await new Promise((res) => setTimeout(res, 1000));
-    return safeGithubQuery(query, variables, retries - 1);
-  }
-}
-
-interface GitHubRepoNode {
-  id: number;
-  name: string;
-  url: string;
-  description: string;
-  stargazerCount: number;
-  forkCount: number;
-  isArchived: boolean;
-  licenseInfo: { key?: string; name?: string } | null;
-  owner: { login: string };
-  primaryLanguage?: { name: string };
-  issues: { totalCount: number };
-  openPRs?: { totalCount: number };
-  recentPRs?: {
-    totalCount: number;
-    nodes: { createdAt: string; mergedAt?: string }[];
-  };
-  pullRequests?: { totalCount: number };
-  goodFirstIssues?: { totalCount: number };
-  helpWantedIssues?: { totalCount: number };
-  firstTimers?: { totalCount: number };
-  beginnerIssues?: { totalCount: number };
-  bugIssues?: { totalCount: number };
-  enhancementIssues?: { totalCount: number };
-  documentationIssues?: { totalCount: number };
-  refactorIssues?: { totalCount: number };
-  highPriorityIssues?: { totalCount: number };
-  updatedAt: string;
-  defaultBranchRef?: { target?: { committedDate: string } };
-  repositoryTopics: { nodes: { topic: { name: string } }[] };
-  contributing?: { text?: string } | null;
-  contributors?: { totalCount: number };
-}
-interface GitHubResponse {
-  search: {
-    nodes: GitHubRepoNode[];
-  };
-}
-
-export const fetchRepos = async (lang: string, minStars: number = 100) => {
-  const dateLimit = new Date();
-  dateLimit.setDate(dateLimit.getDate() - 60);
-  const dateString = dateLimit.toISOString().split("T")[0];
-  const searchQuery = `language:${lang} stars:>${minStars} fork:false archived:false pushed:>=${dateString}`;
-  const query = `query ($search: String!, $count: Int!) {
+const query = `query ($search: String!, $count: Int!) {
   search(query: $search, type: REPOSITORY, first: $count) {
     nodes {
       ... on Repository {
@@ -79,44 +17,82 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
         isArchived
         updatedAt
 
-        licenseInfo { key name }
-        owner { login }
-        primaryLanguage { name }
+        # License
+        licenseInfo {
+          key
+          name
+        }
 
+        # Owner
+        owner {
+          login
+        }
+
+        # Primary language
+        primaryLanguage {
+          name
+        }
+
+        # Latest commit on default branch
         defaultBranchRef {
           target {
-            ... on Commit { committedDate }
+            ... on Commit {
+              committedDate
+            }
           }
         }
+
+        # Repo topics (up to 10)
         repositoryTopics(first: 10) {
-          nodes { topic { name } }
+          nodes {
+            topic {
+              name
+            }
+          }
         }
+
+        # README.md content
+        readme: object(expression: "HEAD:README.md") {
+          ... on Blob {
+            text
+          }
+        }
+
+        # CONTRIBUTING.md (optional)
         contributing: object(expression: "HEAD:CONTRIBUTING.md") {
           ... on Blob {
             text
           }
         }
+
+        # Contributor count
         contributors: mentionableUsers(first: 1) {
           totalCount
         }
+
+        # Total open issues
         issues(states: OPEN) {
           totalCount
         }
-     openPRs: pullRequests(states: OPEN) {
-  totalCount
-}
 
-recentPRs: pullRequests(
-  states: [OPEN, MERGED, CLOSED]
-  first: 20
-  orderBy: { field: CREATED_AT, direction: DESC }
-) {
-  nodes {
-    createdAt
-    mergedAt
-  }
-  totalCount
-}
+        # Issues (titles + labels) for summarizer
+        issueSamples: issues(
+          first: 20
+          states: OPEN
+          orderBy: { field: CREATED_AT, direction: DESC }
+        ) {
+          nodes {
+            title
+            labels(first: 10) {
+              nodes {
+                name
+              }
+            }
+            __typename
+          }
+        }
+
+        # Standard issue categories
         goodFirstIssues: issues(
           labels: ["good first issue", "good-first-issue"]
           states: OPEN
@@ -144,6 +120,7 @@ recentPRs: pullRequests(
         ) {
           totalCount
         }
+
         bugIssues: issues(labels: ["bug"], states: OPEN) {
           totalCount
         }
@@ -163,10 +140,114 @@ recentPRs: pullRequests(
         highPriorityIssues: issues(labels: ["high priority"], states: OPEN) {
           totalCount
         }
+
+        # Pull request activity
+        openPRs: pullRequests(states: OPEN) {
+          totalCount
+        }
+
+        recentPRs: pullRequests(
+          states: [OPEN, MERGED, CLOSED]
+          first: 20
+          orderBy: { field: CREATED_AT, direction: DESC }
+        ) {
+          nodes {
+            createdAt
+            mergedAt
+          }
+          totalCount
+        }
       }
     }
   }
 }`;
+
+const gh = graphql.defaults({
+  headers: { authorization: `token ${_config.GITHUB_TOKEN}` },
+});
+
+async function safeGithubQuery(
+  query: string,
+  variables: any,
+  retries = 2
+): Promise<any> {
+  try {
+    return await gh(query, variables);
+  } catch (err: any) {
+    if (retries <= 0) throw err;
+    await new Promise((res) => setTimeout(res, 1000));
+    return safeGithubQuery(query, variables, retries - 1);
+  }
+}
+
+interface GitHubRepoNode {
+  id: string;
+  name: string;
+  url: string;
+  description: string;
+  stargazerCount: number;
+  forkCount: number;
+  isArchived: boolean;
+  updatedAt: string;
+
+  licenseInfo: { key?: string; name?: string } | null;
+  owner: { login: string };
+  primaryLanguage?: { name: string };
+
+  // README
+  readme?: { text?: string } | null;
+
+  // CONTRIBUTING.md
+  contributing?: { text?: string } | null;
+
+  // Contributor count
+  contributors?: { totalCount: number };
+
+  // Issue totals
+  issues: { totalCount: number };
+  goodFirstIssues?: { totalCount: number };
+  helpWantedIssues?: { totalCount: number };
+  firstTimers?: { totalCount: number };
+  beginnerIssues?: { totalCount: number };
+  bugIssues?: { totalCount: number };
+  enhancementIssues?: { totalCount: number };
+  documentationIssues?: { totalCount: number };
+  refactorIssues?: { totalCount: number };
+  highPriorityIssues?: { totalCount: number };
+
+  // Issue samples
+  issueSamples?: {
+    nodes: {
+      title: string;
+      labels: { nodes: { name: string }[] };
+      __typename: string;
+    }[];
+  };
+
+  // PR data
+  openPRs?: { totalCount: number };
+  recentPRs?: {
+    totalCount: number;
+    nodes: { createdAt: string; mergedAt?: string }[];
+  };
+
+  // Topics
+  repositoryTopics: { nodes: { topic: { name: string } }[] };
+
+  // Last commit
+  defaultBranchRef?: { target?: { committedDate: string } };
+}
+interface GitHubResponse {
+  search: {
+    nodes: GitHubRepoNode[];
+  };
+}
+
+export const fetchRepos = async (lang: string, minStars: number = 100) => {
+  const dateLimit = new Date();
+  dateLimit.setDate(dateLimit.getDate() - 60);
+  const dateString = dateLimit.toISOString().split("T")[0];
+  const searchQuery = `language:${lang} stars:>${minStars} fork:false archived:false pushed:>=${dateString}`;
 
   try {
     const response = await safeGithubQuery(query, {
@@ -264,6 +345,12 @@ recentPRs: pullRequests(
         isArchived: repo.isArchived,
         forkCount: repo.forkCount,
         topics: repo.repositoryTopics.nodes.map((t: any) => t.topic.name),
+        readme_raw: repo.readme?.text || "",
+        contributing_raw: repo.contributing?.text || "",
+        issue_samples: (repo.issueSamples?.nodes || []).map((n: any) => ({
+          title: n.title,
+          labels: (n.labels?.nodes || []).map((l: any) => l.name),
+        })),
         issue_data: issueData,
         activity: {
           avg_pr_merge_hours: avgMergeTime,
@@ -273,6 +360,11 @@ recentPRs: pullRequests(
         maintenance: scores.maintenance,
         accessibility: scores.accessibility,
         complexity: scores.complexity,
+        tech_stack: repo.tech_stack || [],
+        required_skills: repo.required_skills || [],
+        main_contrib_areas: repo.main_contrib_areas || [],
+        beginner_tasks: repo.beginner_tasks || [],
+        intermediate_tasks: repo.intermediate_tasks || [],
         ai_categories: repo.ai_categories || [],
         difficulty_level:
           scores.friendliness >= 0.6

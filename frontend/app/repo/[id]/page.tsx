@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, use } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -22,54 +22,16 @@ import DifficultyBadge from "@/components/layout/difficulty-badge";
 import ScoreBar from "@/components/layout/score-bar";
 import IssueCard from "@/components/layout/issue-card";
 import ActivityStats from "@/components/layout/activity-stats";
+import { useRepo } from "@/hooks/use-repo";
 
-// Mock data - replace with actual API call
-const MOCK_REPO_DETAIL = {
-  id: "1",
-  name: "next.js",
-  owner: "vercel",
-  url: "https://github.com/vercel/next.js",
-  stars: 125000,
-  language: "TypeScript",
-  license: "MIT",
-  difficulty: "advanced",
-  categories: ["web-framework", "devtool"],
-  topics: ["react", "javascript", "framework", "ssr", "static-generation"],
-  summary:
-    "The React Framework for Production. Build next-generation applications with server-side rendering, static generation, and API routes. Perfect for building scalable web applications.",
-  fullSummary:
-    "Next.js is a React framework that enables you to build full-stack web applications. You use React Components to build user interfaces, and Next.js for additional features and optimizations.\n\nBehind the scenes, Next.js also abstracts and automatically configures tooling needed for React, like bundling, compiling, and more. This allows you to focus on building your application instead of spending time with configuration.\n\nWhether you're a solo developer or part of a large team, Next.js can help you build interactive, dynamic, and fast web applications.",
-  skillLevel: "intermediate-to-advanced",
-  mainContribAreas: [
-    "Framework development",
-    "Performance optimization",
-    "Next.js CLI",
-    "Testing infrastructure",
-    "Documentation",
-  ],
-  friendliness: 0.85,
-  maintenance: 0.95,
-  accessibility: 0.8,
-  complexity: 0.8,
-  goodFirstIssues: 12,
-  helpWanted: 8,
-  firstTimersOnly: 3,
-  docIssues: 5,
-  bugIssues: 18,
-  enhancementIssues: 22,
-  openPRs: 45,
-  avgPRMergeHours: 24,
-  prMergeRatio: 0.92,
-  lastCommit: "2 hours ago",
-  lastUpdated: "2 hours ago",
-  similarRepos: [
-    { id: "2", name: "remix", owner: "remix-run", stars: 28000 },
-    { id: "3", name: "nuxt", owner: "nuxt", stars: 54000 },
-    { id: "4", name: "gatsby", owner: "gatsbyjs", stars: 55000 },
-  ],
-};
+export default function RepoDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  const { data: repo, isLoading, error, refetch } = useRepo({ repoId: id });
 
-export default function RepoDetailPage({ params }: { params: { id: string } }) {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -84,210 +46,256 @@ export default function RepoDetailPage({ params }: { params: { id: string } }) {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-12">
-        {/* Hero Section */}
-        <div className="mb-12">
-          <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-4xl font-bold">
-                  {MOCK_REPO_DETAIL.owner}/{MOCK_REPO_DETAIL.name}
-                </h1>
-                <a
-                  href={MOCK_REPO_DETAIL.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-accent hover:underline"
-                >
-                  <ArrowUpRight className="w-5 h-5" />
-                </a>
-              </div>
-              <p className="text-muted-foreground mb-4">
-                {MOCK_REPO_DETAIL.summary}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
-              <span className="text-2xl font-bold">
-                {(MOCK_REPO_DETAIL.stars / 1000).toFixed(0)}k
-              </span>
-            </div>
-          </div>
+      {/* Main container: show loading / error / content */}
+      {isLoading ? (
+        <main className="container mx-auto px-4 py-12">
+          <div className="animate-pulse">
+            <div className="h-8 bg-slate-700 rounded w-1/3 mb-4" />
+            <div className="h-6 bg-slate-700 rounded w-2/3 mb-6" />
 
-          {/* Meta Tags */}
-          <div className="flex items-center gap-2 flex-wrap mb-4">
-            <DifficultyBadge difficulty={MOCK_REPO_DETAIL.difficulty} />
-            <Badge variant="outline">{MOCK_REPO_DETAIL.language}</Badge>
-            <Badge variant="outline">{MOCK_REPO_DETAIL.license}</Badge>
-            <Badge variant="outline">{MOCK_REPO_DETAIL.lastUpdated}</Badge>
-          </div>
-
-          {/* Categories & Topics */}
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Categories</p>
-              <div className="flex flex-wrap gap-2">
-                {MOCK_REPO_DETAIL.categories.map((cat) => (
-                  <Badge key={cat} variant="secondary" className="capitalize">
-                    {cat}
-                  </Badge>
-                ))}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="h-40 bg-card rounded-lg" />
+                <div className="h-56 bg-card rounded-lg" />
+                <div className="h-32 bg-card rounded-lg" />
               </div>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Topics</p>
-              <div className="flex flex-wrap gap-2">
-                {MOCK_REPO_DETAIL.topics.map((topic) => (
-                  <Badge key={topic} variant="outline" className="capitalize">
-                    {topic}
-                  </Badge>
-                ))}
+              <div className="space-y-6">
+                <div className="h-24 bg-card rounded-lg" />
+                <div className="h-40 bg-card rounded-lg" />
               </div>
             </div>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 mt-6">
-            <Button size="lg" asChild>
-              <a
-                href={MOCK_REPO_DETAIL.url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Open Repository
-              </a>
-            </Button>
-            <Button size="lg" variant="outline">
-              View Issues
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            {/* AI Summary Section */}
+        </main>
+      ) : error ? (
+        <main className="container mx-auto px-4 py-12">
+          <div className="max-w-2xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle>About This Repository</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-destructive" />
+                  <span>Failed to load repository</span>
+                </CardTitle>
+                <CardDescription>
+                  There was an error fetching repository details. You can retry
+                  or go back to the list.
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h3 className="font-semibold mb-2">Full Description</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {MOCK_REPO_DETAIL.fullSummary}
-                  </p>
+              <CardContent className="flex gap-3">
+                <Button onClick={() => refetch()}>Retry</Button>
+                <Link href="/">
+                  <Button variant="ghost">Back to list</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      ) : (
+        <main className="container mx-auto px-4 py-12">
+          {/* Hero Section */}
+          <div className="mb-12">
+            <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-4xl font-bold">
+                    {repo.owner}/{repo.repo_name}
+                  </h1>
+                  <a
+                    href={repo.repo_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    <ArrowUpRight className="w-5 h-5" />
+                  </a>
                 </div>
-                <div>
-                  <h3 className="font-semibold mb-2">
-                    Recommended Skill Level
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {MOCK_REPO_DETAIL.skillLevel}
-                  </p>
+                <p className="text-muted-foreground mb-4">{repo.description}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
+                <span className="text-2xl font-bold">
+                  {(repo.stars / 1000).toFixed(0)}k
+                </span>
+              </div>
+            </div>
+
+            {/* Meta Tags */}
+            <div className="flex items-center gap-2 flex-wrap mb-4">
+              <DifficultyBadge difficulty={repo.summary_level} />
+              <Badge variant="outline">{repo.language}</Badge>
+              <Badge variant="outline">{repo.licenseInfo.name}</Badge>
+              <Badge variant="outline">{repo.last_updated}</Badge>
+            </div>
+
+            {/* Categories & Topics */}
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Categories</p>
+                <div className="flex flex-wrap gap-2">
+                  {repo.ai_categories.map((cat: string) => (
+                    <Badge key={cat} variant="secondary" className="capitalize">
+                      {cat}
+                    </Badge>
+                  ))}
                 </div>
-                <div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Topics</p>
+                <div className="flex flex-wrap gap-2">
+                  {repo.topics.map((topic: string) => (
+                    <Badge key={topic} variant="outline" className="capitalize">
+                      {topic}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 mt-6">
+              <Button size="lg" asChild>
+                <a
+                  href={repo.repo_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open Repository
+                </a>
+              </Button>
+              <Button
+                className=" hover:text-white cursor-pointer"
+                size="lg"
+                variant="outline"
+              >
+                View Issues
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              {/* AI Summary Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>About This Repository</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold mb-2">Full Description</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {repo.summary}
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2">
+                      Recommended Skill Level
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {repo.summary_level}
+                    </p>
+                  </div>
+                  {/* <div>
                   <h3 className="font-semibold mb-2">
                     Main Contribution Areas
                   </h3>
                   <ul className="space-y-1">
-                    {MOCK_REPO_DETAIL.mainContribAreas.map((area) => (
+                    {repo.mainContribAreas.map((area) => (
                       <li key={area} className="text-muted-foreground">
                         • {area}
                       </li>
                     ))}
                   </ul>
+                </div> */}
+                </CardContent>
+              </Card>
+
+              {/* Scoring Breakdown */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Repository Scoring</CardTitle>
+                  <CardDescription>
+                    4D evaluation of project quality and
+                    contributor-friendliness
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <ScoreBar
+                    label="Friendliness"
+                    value={repo.friendliness}
+                    color="green"
+                  />
+                  <ScoreBar
+                    label="Maintenance"
+                    value={repo.maintenance}
+                    color="yellow"
+                  />
+                  <ScoreBar
+                    label="Accessibility"
+                    value={repo.accessibility}
+                    color="cyan"
+                  />
+                  <ScoreBar
+                    label="Complexity"
+                    value={repo.complexity}
+                    color="red"
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Issue Breakdown */}
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Available Issues</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <IssueCard
+                    title="Good First Issues"
+                    count={repo.issue_data.good_first_issue_count}
+                    description="Perfect for your first contribution"
+                    color="green"
+                  />
+                  <IssueCard
+                    title="Help Wanted"
+                    count={repo.issue_data.help_wanted_count}
+                    description="Active support needed"
+                    color="blue"
+                  />
+                  <IssueCard
+                    title="First Timers Only"
+                    count={repo.issue_data.first_timers_count}
+                    description="Exclusive for newcomers"
+                    color="emerald"
+                  />
+                  <IssueCard
+                    title="Documentation"
+                    count={repo.issue_data.documentation_count}
+                    description="Documentation needs"
+                    color="purple"
+                  />
+                  <IssueCard
+                    title="Bug Reports"
+                    count={repo.issue_data.bug_count}
+                    description="Issues to resolve"
+                    color="red"
+                  />
+                  <IssueCard
+                    title="Enhancements"
+                    count={repo.issue_data.refactor_count}
+                    description="Feature improvements"
+                    color="cyan"
+                  />
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Scoring Breakdown */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Repository Scoring</CardTitle>
-                <CardDescription>
-                  4D evaluation of project quality and contributor-friendliness
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <ScoreBar
-                  label="Friendliness"
-                  value={MOCK_REPO_DETAIL.friendliness}
-                  color="green"
-                />
-                <ScoreBar
-                  label="Maintenance"
-                  value={MOCK_REPO_DETAIL.maintenance}
-                  color="yellow"
-                />
-                <ScoreBar
-                  label="Accessibility"
-                  value={MOCK_REPO_DETAIL.accessibility}
-                  color="cyan"
-                />
-                <ScoreBar
-                  label="Complexity"
-                  value={MOCK_REPO_DETAIL.complexity}
-                  color="red"
-                />
-              </CardContent>
-            </Card>
-
-            {/* Issue Breakdown */}
-            <div>
-              <h2 className="text-2xl font-bold mb-4">Available Issues</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <IssueCard
-                  title="Good First Issues"
-                  count={MOCK_REPO_DETAIL.goodFirstIssues}
-                  description="Perfect for your first contribution"
-                  color="green"
-                />
-                <IssueCard
-                  title="Help Wanted"
-                  count={MOCK_REPO_DETAIL.helpWanted}
-                  description="Active support needed"
-                  color="blue"
-                />
-                <IssueCard
-                  title="First Timers Only"
-                  count={MOCK_REPO_DETAIL.firstTimersOnly}
-                  description="Exclusive for newcomers"
-                  color="emerald"
-                />
-                <IssueCard
-                  title="Documentation"
-                  count={MOCK_REPO_DETAIL.docIssues}
-                  description="Documentation needs"
-                  color="purple"
-                />
-                <IssueCard
-                  title="Bug Reports"
-                  count={MOCK_REPO_DETAIL.bugIssues}
-                  description="Issues to resolve"
-                  color="red"
-                />
-                <IssueCard
-                  title="Enhancements"
-                  count={MOCK_REPO_DETAIL.enhancementIssues}
-                  description="Feature improvements"
-                  color="cyan"
-                />
               </div>
+
+              <ActivityStats
+                openPRs={repo.open_prs}
+                avgPRMergeHours={repo.activity.avg_pr_merge_hours}
+                prMergeRatio={repo.activity.pr_merge_ratio}
+                lastCommit={repo.last_commit}
+              />
             </div>
 
-            {/* Activity Section */}
-            <ActivityStats
-              openPRs={MOCK_REPO_DETAIL.openPRs}
-              avgPRMergeHours={MOCK_REPO_DETAIL.avgPRMergeHours}
-              prMergeRatio={MOCK_REPO_DETAIL.prMergeRatio}
-              lastCommit={MOCK_REPO_DETAIL.lastCommit}
-            />
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Similar Repos */}
-            <Card>
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Similar Repos */}
+              {/* <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Similar Projects</CardTitle>
                 <CardDescription>
@@ -295,7 +303,7 @@ export default function RepoDetailPage({ params }: { params: { id: string } }) {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {MOCK_REPO_DETAIL.similarRepos.map((repo) => (
+                {repo.similarRepos.map((repo) => (
                   <Link
                     key={repo.id}
                     href={`/repo/${repo.id}`}
@@ -313,43 +321,38 @@ export default function RepoDetailPage({ params }: { params: { id: string } }) {
                   </Link>
                 ))}
               </CardContent>
-            </Card>
+            </Card> */}
 
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Facts</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Language</span>
-                  <span className="font-semibold">
-                    {MOCK_REPO_DETAIL.language}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">License</span>
-                  <span className="font-semibold">
-                    {MOCK_REPO_DETAIL.license}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Last Updated</span>
-                  <span className="font-semibold">
-                    {MOCK_REPO_DETAIL.lastUpdated}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Last Commit</span>
-                  <span className="font-semibold">
-                    {MOCK_REPO_DETAIL.lastCommit}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
+              {/* Quick Stats */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Quick Facts</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Language</span>
+                    <span className="font-semibold">{repo.language}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">License</span>
+                    <span className="font-semibold">
+                      {repo.licenseInfo.name}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Last Updated</span>
+                    <span className="font-semibold">{repo.last_updated}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Last Commit</span>
+                    <span className="font-semibold">{repo.last_commit}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      )}
     </div>
   );
 }

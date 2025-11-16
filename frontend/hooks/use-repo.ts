@@ -13,8 +13,8 @@ export function useRepo({ repoId, enabled = true }: UseRepoParams = {}) {
     queryKey: ["repo", repoId],
     queryFn: async () => {
       if (!repoId) throw new Error("repoId is required");
-      const response = await getRepoById(repoId);
-      return response;
+      const repo = await getRepoById(repoId);
+      return repo;
     },
     enabled: !!repoId && enabled,
     staleTime: 300_000,

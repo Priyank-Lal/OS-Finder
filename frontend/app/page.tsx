@@ -9,6 +9,57 @@ import { Input } from "@/components/ui/input";
 import { useRepos } from "@/hooks/use-repos";
 import { useDebounce } from "@/hooks/use-debounce";
 
+interface RepoCardProps {
+  _id: string;
+  repoId: String;
+  repo_name: string;
+  repo_url: string;
+  owner: string;
+  language: string;
+  licenseInfo: {
+    name: string;
+    key: any;
+  };
+  isArchived: boolean;
+  forkCount: number;
+  topics: string[];
+  description: string;
+  open_prs: number;
+  stars: number;
+  score: number;
+  final_score: number;
+  friendliness: number;
+  maintenance: number;
+  accessibility: number;
+  complexity: number;
+  ai_categories: string[];
+  contributors: number;
+  has_contributing: boolean;
+  issue_data: {
+    total_open_issues: number;
+    good_first_issue_count: number;
+    help_wanted_count: number;
+    first_timers_count: number;
+    beginner_count: number;
+    bug_count: number;
+    enhancement_count: number;
+    documentation_count: number;
+    refactor_count: number;
+    high_priority_count: number;
+  };
+  beginner_issue_total: number;
+  beginner_issue_score: number;
+  accessibility_score_base: number;
+  activity: {
+    avg_pr_merge_hours: number;
+    pr_merge_ratio: number;
+  };
+  summary: string;
+  summary_level: string;
+  last_updated: Date;
+  last_commit: Date;
+}
+
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("");
@@ -86,8 +137,8 @@ export default function HomePage() {
               <p className="text-destructive">Error: {error?.message}</p>
             </div>
           ) : repos.length > 0 ? (
-            repos.map((repo: any) => (
-              <RepoCard key={repo.repo_id} repo={repo} />
+            repos.map((repo: RepoCardProps) => (
+              <RepoCard key={repo._id} repo={repo} />
             ))
           ) : (
             <div className="col-span-full text-center py-12">
