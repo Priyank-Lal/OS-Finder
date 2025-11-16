@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Star, GitFork, Zap } from "lucide-react";
+import { Star, GitFork, Zap, Users } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -16,76 +16,116 @@ import ScoreBar from "./score-bar";
 
 interface RepoCardProps {
   repo: {
-    id: string;
-    name: string;
+    repoId: String;
+    repo_name: string;
+    repo_url: string;
     owner: string;
-    stars: number;
     language: string;
-    license: string;
-    difficulty: string;
-    categories: string[];
-    summary: string;
+    licenseInfo: {
+      name: string;
+      key: any;
+    };
+    isArchived: boolean;
+    forkCount: number;
+    topics: string[];
+    description: string;
+    open_prs: number;
+    stars: number;
+    score: number;
+    final_score: number;
     friendliness: number;
     maintenance: number;
     accessibility: number;
     complexity: number;
-    goodFirstIssues: number;
-    helpWanted: number;
-    openPRs: number;
+    ai_categories: string[];
+    contributors: number;
+    has_contributing: boolean;
+    issue_data: {
+      total_open_issues: number;
+      good_first_issue_count: number;
+      help_wanted_count: number;
+      first_timers_count: number;
+      beginner_count: number;
+      bug_count: number;
+      enhancement_count: number;
+      documentation_count: number;
+      refactor_count: number;
+      high_priority_count: number;
+    };
+    beginner_issue_total: number;
+    beginner_issue_score: number;
+    accessibility_score_base: number;
+    activity: {
+      avg_pr_merge_hours: number;
+      pr_merge_ratio: number;
+    };
+    summary: string;
+    summary_level: string;
+    last_updated: Date;
+    last_commit: Date;
   };
 }
 
 export default function RepoCard({ repo }: RepoCardProps) {
   return (
-    <Link href={`/repo/${repo.id}`}>
-      <Card className="hover:border-accent/50 transition-all cursor-pointer h-full flex flex-col">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <CardTitle className="text-lg line-clamp-1">
-              {repo.owner}/{repo.name}
+    <Link href={`/repo/${repo.repoId}`}>
+      <Card className="hover:border-accent/50 transition-all cursor-pointer h-full flex flex-col overflow-hidden">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <CardTitle className="text-lg font-semibold truncate flex-1 al">
+              {repo.repo_name}
             </CardTitle>
-            <DifficultyBadge difficulty={repo.difficulty} />
+            <div className="shrink-0">
+              <DifficultyBadge difficulty={repo.summary_level} />
+            </div>
           </div>
-          <CardDescription className="line-clamp-2 text-sm">
+          <CardDescription className="line-clamp-2 text-xs leading-snug">
             {repo.summary}
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="flex-1 flex flex-col gap-4">
-          {/* Meta Info */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Star className="w-4 h-4" />
-              {(repo.stars / 1000).toFixed(0)}k
+        <CardContent className="flex-1 flex flex-col gap-2 pt-2">
+          {/* Meta Info Row */}
+          <div className="flex items-center gap-1 flex-wrap text-xs">
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Star className="w-3.5 h-3.5" />
+              <span>{(repo.stars / 1000).toFixed(0)}k</span>
             </div>
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs px-1.5 py-0 h-5">
               {repo.language}
             </Badge>
-            <Badge variant="outline" className="text-xs">
-              {repo.license}
-            </Badge>
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <GitFork className="w-3.5 h-3.5" />
+              <span>{repo.forkCount}</span>
+            </div>
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Users className="w-3.5 h-3.5" />
+              <span>{repo.contributors}</span>
+            </div>
           </div>
 
-          {/* Categories */}
-          <div className="flex flex-wrap gap-1">
-            {repo.categories?.slice(0, 2).map((cat) => (
-              <Badge
-                key={cat}
-                variant="secondary"
-                className="text-xs capitalize"
-              >
-                {cat}
-              </Badge>
-            ))}
-            {repo.categories?.length > 2 && (
-              <Badge variant="secondary" className="text-xs">
-                +{repo.categories.length - 2}
-              </Badge>
-            )}
-          </div>
+          {/* Categories - Compact */}
+          {repo.ai_categories?.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {repo.ai_categories?.slice(0, 2).map((cat) => (
+                <Badge
+                  key={cat}
+                  variant="secondary"
+                  className="text-xs px-1.5 py-0 h-5 capitalize"
+                >
+                  {cat}
+                </Badge>
+              ))}
+              {repo.ai_categories?.length > 2 && (
+                <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
+                  +{repo.ai_categories.length - 2}
+                </Badge>
+              )}
+            </div>
+          )}
 
-          {/* Score Bars */}
-          <div className="space-y-2">
+          {/* Score Bars - Compact */}
+          <div className="space-y-1">
             <ScoreBar
               label="Friendliness"
               value={repo.friendliness}
@@ -99,21 +139,27 @@ export default function RepoCard({ repo }: RepoCardProps) {
           </div>
 
           {/* Issue Stats */}
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="bg-card-foreground/5 rounded p-2">
-              <div className="text-muted-foreground">Good First</div>
-              <div className="font-semibold">{repo.goodFirstIssues}</div>
+          <div className="grid grid-cols-2 gap-1 text-xs">
+            <div className="bg-card-foreground/5 rounded px-2 py-1.5">
+              <div className="text-muted-foreground text-xs">Good First</div>
+              <div className="font-semibold text-sm">
+                {repo.issue_data.good_first_issue_count}
+              </div>
             </div>
-            <div className="bg-card-foreground/5 rounded p-2">
-              <div className="text-muted-foreground">Help Wanted</div>
-              <div className="font-semibold">{repo.helpWanted}</div>
+            <div className="bg-card-foreground/5 rounded px-2 py-1.5">
+              <div className="text-muted-foreground text-xs">Help Wanted</div>
+              <div className="font-semibold text-sm">
+                {repo.issue_data.help_wanted_count}
+              </div>
             </div>
           </div>
 
-          {/* View Button */}
-          <Button size="sm" className="mt-auto" variant="outline">
-            View Details <Zap className="w-4 h-4 ml-1" />
-          </Button>
+          {/* Footer: Last Updated */}
+          {repo.last_updated && (
+            <div className="text-xs text-muted-foreground line-clamp-1">
+              Updated: {new Date(repo.last_updated).toLocaleDateString()}
+            </div>
+          )}
         </CardContent>
       </Card>
     </Link>

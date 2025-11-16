@@ -25,10 +25,11 @@ export default function HomePage() {
   });
   const { data: reposData, isLoading, isError, error } = queryResult;
 
-
   const isPreviousData = (queryResult as any)?.isPreviousData ?? false;
 
   const repos = reposData?.data || [];
+
+  console.log(repos);
 
   return (
     <div className="min-h-screen bg-background">
@@ -72,9 +73,8 @@ export default function HomePage() {
               <p className="text-destructive">Error: {error?.message}</p>
             </div>
           ) : repos.length > 0 ? (
-            repos.map((repo: any) => <RepoCard key={repo._id} repo={repo} />)
+            repos.map((repo: any) => <RepoCard key={repo.repoId} repo={repo} />)
           ) : (
-
             <div className="col-span-full text-center py-12">
               <p className="text-muted-foreground text-lg">
                 No repositories found. Try adjusting your filters.
