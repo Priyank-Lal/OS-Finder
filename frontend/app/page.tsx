@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Search } from "lucide-react";
 import Header from "@/components/layout/header";
 import FilterBar from "@/components/layout/filter-bar";
 import RepoCard from "@/components/layout/repo-card";
 import { Input } from "@/components/ui/input";
 import { useRepos } from "@/hooks/use-repos";
+import { useDebounce } from "@/hooks/use-debounce";
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -15,13 +16,25 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState("stars");
   const [page, setPage] = useState(1);
+
+  const debouncedSearch = useDebounce(searchQuery, 400);
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    selectedLanguage,
+    selectedDifficulty,
+    selectedCategory,
+    sortBy,
+    searchQuery,
+  ]);
   const queryResult = useRepos({
     lang: selectedLanguage === "all" ? "" : selectedLanguage,
     page,
     category: selectedCategory || undefined,
     level: selectedDifficulty === "all" ? "" : selectedDifficulty,
     sortBy,
-    search: searchQuery,
+    search: debouncedSearch,
   });
   const { data: reposData, isLoading, isError, error } = queryResult;
 
@@ -73,7 +86,9 @@ export default function HomePage() {
               <p className="text-destructive">Error: {error?.message}</p>
             </div>
           ) : repos.length > 0 ? (
-            repos.map((repo: any) => <RepoCard key={repo.repoId} repo={repo} />)
+            repos.map((repo: any) => (
+              <RepoCard key={repo.repo_id} repo={repo} />
+            ))
           ) : (
             <div className="col-span-full text-center py-12">
               <p className="text-muted-foreground text-lg">
@@ -96,7 +111,9 @@ export default function HomePage() {
             <span className="px-4 py-2">Page {page}</span>
             <button
               onClick={() => setPage((p) => p + 1)}
-              disabled={isPreviousData || repos.length < 20}
+              disabled={
+                isPreviousData || repos.length < (reposData?.limit || 20)
+              }
               className="px-4 py-2 border border-border rounded-lg disabled:opacity-50"
             >
               Next
