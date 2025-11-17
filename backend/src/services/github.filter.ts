@@ -68,6 +68,8 @@ export function filterGithubRepos(repos: any) {
       return false;
     }
 
+    if(repo)
+
     return true;
   });
 

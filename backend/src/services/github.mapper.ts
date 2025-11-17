@@ -45,27 +45,37 @@ export async function mapGithubRepoToProject(response: any, lang: string) {
       : 0;
 
     // Use new scoring system
-    const scores = await computeDetailedScores(
-      {
-        ...repo,
-        issue_data: issueData,
-        has_contributing: hasContributing,
-        contributors: repo.contributors?.totalCount || 0,
-        stars: repo.stargazerCount,
-        summary_level: "intermediate",
-        beginner_issue_total: beginnerTotal,
-        activity: {
-          avg_pr_merge_hours: avgMergeTime,
-          pr_merge_ratio: prMergeRatio,
-        },
-        readme_raw: repo.readme?.text || "",
-        contributing_raw: repo.contributing?.text || "",
-        language: repo.primaryLanguage?.name || lang,
-        topics: repo.repositoryTopics.nodes.map((t: any) => t.topic.name),
-      } as any,
-      { includeAIAnalysis: false }
-    );
+    // const scores = await computeDetailedScores(
+    //   {
+    //     ...repo,
+    //     issue_data: issueData,
+    //     has_contributing: hasContributing,
+    //     contributors: repo.contributors?.totalCount || 0,
+    //     stars: repo.stargazerCount,
+    //     summary_level: "intermediate",
+    //     beginner_issue_total: beginnerTotal,
+    //     activity: {
+    //       avg_pr_merge_hours: avgMergeTime,
+    //       pr_merge_ratio: prMergeRatio,
+    //     },
+    //     readme_raw: repo.readme?.text || "",
+    //     contributing_raw: repo.contributing?.text || "",
+    //     language: repo.primaryLanguage?.name || lang,
+    //     topics: repo.repositoryTopics.nodes.map((t: any) => t.topic.name),
+    //   } as any,
+    //   { includeAIAnalysis: false }
+    // );
 
+
+    const scores = {
+      beginner_friendliness: 0,
+      technical_complexity: 0,
+      contribution_readiness: 0,
+      overall_score: 0,
+      recommended_level: "intermediate",
+      confidence: 0,
+      breakdown: {},
+    };
     return {
       repoId: repo.id,
       repo_name: repo.name,

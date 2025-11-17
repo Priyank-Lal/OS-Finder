@@ -1,6 +1,60 @@
 import { graphql } from "@octokit/graphql";
 import { _config } from "../config/config";
 
+export interface GitHubRepoNode {
+  id: string;
+  name: string;
+  url: string;
+  description: string;
+  stargazerCount: number;
+  forkCount: number;
+  isArchived: boolean;
+  updatedAt: string;
+
+  licenseInfo: { key?: string; name?: string } | null;
+  owner: { login: string };
+  primaryLanguage?: { name: string };
+
+  readme?: { text?: string } | null;
+  contributing?: { text?: string } | null;
+  contributors?: { totalCount: number };
+
+  issues: { totalCount: number };
+  goodFirstIssues?: { totalCount: number };
+  helpWantedIssues?: { totalCount: number };
+  firstTimers?: { totalCount: number };
+  beginnerIssues?: { totalCount: number };
+  bugIssues?: { totalCount: number };
+  enhancementIssues?: { totalCount: number };
+  documentationIssues?: { totalCount: number };
+  refactorIssues?: { totalCount: number };
+  highPriorityIssues?: { totalCount: number };
+
+  issueSamples?: {
+    nodes: {
+      title: string;
+      labels: { nodes: { name: string }[] };
+      __typename: string;
+    }[];
+  };
+
+  openPRs?: { totalCount: number };
+  recentPRs?: {
+    totalCount: number;
+    nodes: { createdAt: string; mergedAt?: string }[];
+  };
+
+  repositoryTopics: { nodes: { topic: { name: string } }[] };
+  defaultBranchRef?: { target?: { committedDate: string } };
+}
+
+export interface GitHubResponse {
+  search: {
+    nodes: GitHubRepoNode[];
+  };
+}
+
+
 const query = `query ($search: String!, $count: Int!) {
   search(query: $search, type: REPOSITORY, first: $count) {
     nodes {
@@ -118,7 +172,7 @@ const query = `query ($search: String!, $count: Int!) {
           totalCount
         }
 
-        bugIssues: issues(labels: ["bug"], states: OPEN) {
+        bugIssues: issues(labels: ["bug", "Bug",], states: OPEN) {
           totalCount
         }
 
@@ -186,55 +240,3 @@ export async function safeGithubQuery(
   }
 }
 
-export interface GitHubRepoNode {
-  id: string;
-  name: string;
-  url: string;
-  description: string;
-  stargazerCount: number;
-  forkCount: number;
-  isArchived: boolean;
-  updatedAt: string;
-
-  licenseInfo: { key?: string; name?: string } | null;
-  owner: { login: string };
-  primaryLanguage?: { name: string };
-
-  readme?: { text?: string } | null;
-  contributing?: { text?: string } | null;
-  contributors?: { totalCount: number };
-
-  issues: { totalCount: number };
-  goodFirstIssues?: { totalCount: number };
-  helpWantedIssues?: { totalCount: number };
-  firstTimers?: { totalCount: number };
-  beginnerIssues?: { totalCount: number };
-  bugIssues?: { totalCount: number };
-  enhancementIssues?: { totalCount: number };
-  documentationIssues?: { totalCount: number };
-  refactorIssues?: { totalCount: number };
-  highPriorityIssues?: { totalCount: number };
-
-  issueSamples?: {
-    nodes: {
-      title: string;
-      labels: { nodes: { name: string }[] };
-      __typename: string;
-    }[];
-  };
-
-  openPRs?: { totalCount: number };
-  recentPRs?: {
-    totalCount: number;
-    nodes: { createdAt: string; mergedAt?: string }[];
-  };
-
-  repositoryTopics: { nodes: { topic: { name: string } }[] };
-  defaultBranchRef?: { target?: { committedDate: string } };
-}
-
-export interface GitHubResponse {
-  search: {
-    nodes: GitHubRepoNode[];
-  };
-}
