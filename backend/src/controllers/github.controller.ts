@@ -194,16 +194,10 @@ interface GitHubRepoNode {
   owner: { login: string };
   primaryLanguage?: { name: string };
 
-  // README
   readme?: { text?: string } | null;
-
-  // CONTRIBUTING.md
   contributing?: { text?: string } | null;
-
-  // Contributor count
   contributors?: { totalCount: number };
 
-  // Issue totals
   issues: { totalCount: number };
   goodFirstIssues?: { totalCount: number };
   helpWantedIssues?: { totalCount: number };
@@ -215,7 +209,6 @@ interface GitHubRepoNode {
   refactorIssues?: { totalCount: number };
   highPriorityIssues?: { totalCount: number };
 
-  // Issue samples
   issueSamples?: {
     nodes: {
       title: string;
@@ -224,19 +217,16 @@ interface GitHubRepoNode {
     }[];
   };
 
-  // PR data
   openPRs?: { totalCount: number };
   recentPRs?: {
     totalCount: number;
     nodes: { createdAt: string; mergedAt?: string }[];
   };
 
-  // Topics
   repositoryTopics: { nodes: { topic: { name: string } }[] };
-
-  // Last commit
   defaultBranchRef?: { target?: { committedDate: string } };
 }
+
 interface GitHubResponse {
   search: {
     nodes: GitHubRepoNode[];
@@ -255,7 +245,7 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
       count: 3,
     });
 
-    console.log(response.search.nodes[0]);
+    console.log("Fetched", response.search.nodes.length, "repos");
 
     const repos = response.search.nodes.map((repo: any) => {
       const issueData = {
@@ -280,21 +270,6 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
         (repo.beginnerIssues?.totalCount || 0) +
         (repo.documentationIssues?.totalCount || 0);
 
-      const beginnerScore = beginnerTotal * 2;
-
-      const accessibilityBase = beginnerScore + (hasContributing ? 10 : 0);
-
-      const rawScore =
-        (repo.stargazerCount || 0) * 0.3 +
-        (repo.goodFirstIssues?.totalCount || 0) * 2 +
-        (repo.helpWantedIssues?.totalCount || 0) * 1.5 +
-        (repo.beginnerIssues?.totalCount || 0) * 1.5 +
-        (repo.firstTimers?.totalCount || 0) * 2 +
-        (repo.recentPRs?.totalCount || 0) * 0.5 +
-        (repo.issues?.totalCount || 0) * 0.2;
-
-      const score = Number(rawScore.toFixed(2));
-
       const mergeTimes: number[] = (repo.recentPRs?.nodes || [])
         .filter((pr: any) => pr.mergedAt)
         .map(
@@ -317,18 +292,23 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
             .length / (repo.recentPRs?.nodes || []).length
         : 0;
 
+      // Use new scoring system
       const scores = computeScores({
         ...repo,
         issue_data: issueData,
         has_contributing: hasContributing,
         contributors: repo.contributors?.totalCount || 0,
         stars: repo.stargazerCount,
-        summary_level: repo.summary_level || "intermediate",
+        summary_level: "intermediate", // Default, will be updated by AI
         beginner_issue_total: beginnerTotal,
         activity: {
           avg_pr_merge_hours: avgMergeTime,
           pr_merge_ratio: prMergeRatio,
         },
+        readme_raw: repo.readme?.text || "",
+        contributing_raw: repo.contributing?.text || "",
+        language: repo.primaryLanguage?.name || lang,
+        topics: repo.repositoryTopics.nodes.map((t: any) => t.topic.name),
       } as any);
 
       return {
@@ -352,6 +332,7 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
           labels: (n.labels?.nodes || []).map((l: any) => l.name),
         })),
         issue_data: issueData,
+        beginner_issue_total: beginnerTotal,
         activity: {
           avg_pr_merge_hours: avgMergeTime,
           pr_merge_ratio: prMergeRatio,
@@ -360,68 +341,115 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
         maintenance: scores.maintenance,
         accessibility: scores.accessibility,
         complexity: scores.complexity,
-        tech_stack: repo.tech_stack || [],
-        required_skills: repo.required_skills || [],
-        main_contrib_areas: repo.main_contrib_areas || [],
-        beginner_tasks: repo.beginner_tasks || [],
-        intermediate_tasks: repo.intermediate_tasks || [],
-        ai_categories: repo.ai_categories || [],
-        difficulty_level:
-          scores.friendliness >= 0.6
-            ? "beginner"
-            : scores.complexity >= 0.6
-            ? "advanced"
-            : "intermediate",
+        tech_stack: [],
+        required_skills: [],
+        main_contrib_areas: [],
+        beginner_tasks: [],
+        intermediate_tasks: [],
+        ai_categories: [],
         open_prs: repo.openPRs?.totalCount || 0,
         last_commit: repo.defaultBranchRef?.target?.committedDate || null,
         last_updated: repo.updatedAt,
       };
     });
 
+    // Improved filtering logic
     const filtered = repos.filter((repo: any) => {
-      if (repo.accessibility < 0.2) return false;
-      if (repo.maintenance < 0.2) return false;
+      // Must have minimum accessibility (contribution readiness)
+      if (repo.accessibility < 0.15) {
+        console.log(
+          `Filtered ${repo.repo_name}: Low accessibility (${repo.accessibility})`
+        );
+        return false;
+      }
+
+      // Must have recent activity
+      if (repo.maintenance < 0.15) {
+        console.log(
+          `Filtered ${repo.repo_name}: Low maintenance (${repo.maintenance})`
+        );
+        return false;
+      }
 
       // Last commit recency check (reject older than 120 days)
       const lastCommit = repo.last_commit ? new Date(repo.last_commit) : null;
-      if (!lastCommit) return false;
+      if (!lastCommit) {
+        console.log(`Filtered ${repo.repo_name}: No last commit`);
+        return false;
+      }
+
       const diffDays =
         (Date.now() - lastCommit.getTime()) / (1000 * 60 * 60 * 24);
-      if (diffDays > 120) return false;
+      if (diffDays > 120) {
+        console.log(
+          `Filtered ${repo.repo_name}: Last commit ${Math.round(
+            diffDays
+          )} days ago`
+        );
+        return false;
+      }
 
-      // Reject repos with extremely low contributor count
-      if (repo.contributors < 2) return false;
+      // Must have minimum contributors
+      if (repo.contributors < 2) {
+        console.log(
+          `Filtered ${repo.repo_name}: Only ${repo.contributors} contributors`
+        );
+        return false;
+      }
 
+      // Must have license
       const hasLicense = !!repo.licenseInfo?.key;
-      const forbiddenExact = ["guide", "tutorial", "book", "roadmap"];
-      const isExactBad =
-        forbiddenExact.includes(repo.repo_name.toLowerCase()) ||
-        forbiddenExact.includes((repo.description || "").toLowerCase());
+      if (!hasLicense) {
+        console.log(`Filtered ${repo.repo_name}: No license`);
+        return false;
+      }
 
-      const isAwesomeList =
-        repo.repo_name.toLowerCase().startsWith("awesome-") ||
-        (repo.description || "").toLowerCase().startsWith("awesome-");
+      // Filter out guides, tutorials, awesome lists
+      const forbiddenExact = [
+        "guide",
+        "tutorial",
+        "book",
+        "roadmap",
+        "awesome",
+      ];
+      const repoNameLower = repo.repo_name.toLowerCase();
+      const descLower = (repo.description || "").toLowerCase();
 
-      const isBadType = isExactBad || isAwesomeList;
+      const isForbidden = forbiddenExact.some(
+        (term) => repoNameLower.includes(term) || descLower.startsWith(term)
+      );
 
-      return hasLicense && !repo.isArchived && !isBadType;
+      if (isForbidden) {
+        console.log(`Filtered ${repo.repo_name}: Forbidden type`);
+        return false;
+      }
+
+      if (repo.isArchived) {
+        console.log(`Filtered ${repo.repo_name}: Archived`);
+        return false;
+      }
+
+      return true;
     });
 
-    filtered.map((repo: any) => {
-      console.log(repo);
-    });
+    console.log(`${filtered.length}/${repos.length} repos passed filtering`);
 
-    await Project.bulkWrite(
-      filtered.map((repo: any) => ({
-        updateOne: {
-          filter: { repoId: repo.repoId },
-          update: {
-            $set: { ...repo, ai_categories: repo.ai_categories || [] },
+    // Save to database
+    if (filtered.length > 0) {
+      await Project.bulkWrite(
+        filtered.map((repo: any) => ({
+          updateOne: {
+            filter: { repoId: repo.repoId },
+            update: {
+              $set: repo,
+            },
+            upsert: true,
           },
-          upsert: true,
-        },
-      }))
-    );
+        }))
+      );
+
+      console.log(`Saved ${filtered.length} repos to database`);
+    }
 
     return filtered;
   } catch (error: any) {
@@ -431,85 +459,145 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
 };
 
 export const getReposFromDb = async (req: Request, res: Response) => {
-  const { lang, limit = 20, page = 1, topic, level } = req.query;
-
-  const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 50));
-  const safePage = Math.max(1, Number(page) || 1);
-
-  const allowedLevels = ["beginner", "intermediate", "advanced"];
-  const selectedLevelRaw =
-    typeof level === "string" ? level.toLowerCase() : "intermediate";
-  const selectedLevel = allowedLevels.includes(selectedLevelRaw)
-    ? selectedLevelRaw
-    : "intermediate";
-
-  function computeLevelScore(repo: any) {
-    if (selectedLevel === "beginner") {
-      return (
-        repo.friendliness * 0.6 +
-        repo.accessibility * 0.3 +
-        repo.maintenance * 0.1
-      );
-    }
-    if (selectedLevel === "advanced") {
-      return repo.complexity * 0.5 + repo.maintenance * 0.5;
-    }
-    return (
-      repo.maintenance * 0.5 + repo.accessibility * 0.3 + repo.complexity * 0.2
-    );
-  }
-
-  const skip = (safePage - 1) * safeLimit;
-  const filter: any = {};
-  if (lang) filter.language = { $regex: new RegExp(`^${lang}$`, "i") };
-  if (topic) {
-    filter.topics = { $regex: new RegExp(topic as string, "i") };
-  }
-  const category = req.query.category;
-  if (category) {
-    filter.$or = [
-      { ai_categories: { $regex: new RegExp(category as string, "i") } },
-      { topics: { $regex: new RegExp(category as string, "i") } },
-    ];
-  }
   try {
-    const repos = await Project.find(filter).skip(skip).limit(safeLimit).exec();
+    const { lang, limit = 20, page = 1, topic, level, category } = req.query;
 
-    const scored = repos
-      .map((repo: any) => {
-        const obj = repo.toObject();
-        return {
-          ...obj,
-          level_score: computeLevelScore(obj),
-          difficulty_level:
-            obj.friendliness >= 0.6
-              ? "beginner"
-              : obj.complexity >= 0.6
-              ? "advanced"
-              : "intermediate",
-        };
-      })
-      .sort((a, b) => b.level_score - a.level_score);
+    const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 50));
+    const safePage = Math.max(1, Number(page) || 1);
+
+    const allowedLevels = ["beginner", "intermediate", "advanced"];
+    const selectedLevelRaw =
+      typeof level === "string" ? level.toLowerCase() : null;
+    const selectedLevel =
+      selectedLevelRaw && allowedLevels.includes(selectedLevelRaw)
+        ? selectedLevelRaw
+        : null;
+
+    // Build filter
+    const filter: any = {};
+
+    if (lang) {
+      filter.language = { $regex: new RegExp(`^${lang}$`, "i") };
+    }
+
+    if (topic) {
+      filter.topics = { $regex: new RegExp(topic as string, "i") };
+    }
+
+    if (category) {
+      filter.$or = [
+        { ai_categories: { $regex: new RegExp(category as string, "i") } },
+        { topics: { $regex: new RegExp(category as string, "i") } },
+      ];
+    }
+
+    const skip = (safePage - 1) * safeLimit;
+
+    // Fetch repos
+    const repos = await Project.find(filter)
+      .skip(skip)
+      .limit(safeLimit)
+      .lean()
+      .exec();
+
+    if (!repos || repos.length === 0) {
+      return res.json({
+        count: 0,
+        page: safePage,
+        limit: safeLimit,
+        data: [],
+      });
+    }
+
+    // Compute level-specific scores
+    const scored = repos.map((repo: any) => {
+      let levelScore = 0;
+
+      if (!selectedLevel) {
+        // No level filter: use overall quality
+        levelScore =
+          repo.accessibility * 0.4 +
+          repo.maintenance * 0.3 +
+          repo.friendliness * 0.3;
+      } else if (selectedLevel === "beginner") {
+        // Beginner: High friendliness + Low complexity + Good accessibility
+        levelScore =
+          repo.friendliness * 0.5 +
+          (1 - repo.complexity) * 0.3 +
+          repo.accessibility * 0.2;
+      } else if (selectedLevel === "intermediate") {
+        // Intermediate: Balanced
+        levelScore =
+          repo.maintenance * 0.4 +
+          repo.accessibility * 0.3 +
+          repo.friendliness * 0.15 +
+          repo.complexity * 0.15;
+      } else if (selectedLevel === "advanced") {
+        // Advanced: High complexity + Good maintenance
+        levelScore =
+          repo.complexity * 0.5 +
+          repo.maintenance * 0.4 +
+          repo.accessibility * 0.1;
+      }
+
+      // Determine display level
+      let displayLevel = "intermediate";
+      if (repo.friendliness >= 0.65 && repo.complexity <= 0.35) {
+        displayLevel = "beginner";
+      } else if (repo.complexity >= 0.65 || repo.friendliness <= 0.3) {
+        displayLevel = "advanced";
+      }
+
+      return {
+        ...repo,
+        level_score: levelScore,
+        difficulty_level: displayLevel,
+      };
+    });
+
+    // Sort by level_score descending
+    scored.sort((a, b) => b.level_score - a.level_score);
 
     return res.json({
-      count: repos.length,
+      count: scored.length,
       page: safePage,
       limit: safeLimit,
       data: scored,
     });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to fetch repos", error });
+    console.error("Error fetching repos from DB:", error);
+    return res.status(500).json({
+      message: "Failed to fetch repos",
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 };
 
 export const getRepoById = async (req: Request, res: Response) => {
   try {
-    const repo = await Project.findOne({ repoId: req.params.id });
+    const repo = await Project.findOne({ repoId: req.params.id }).lean();
 
-    if (!repo) return res.status(404).json({ message: "Repo not found" });
+    if (!repo) {
+      return res.status(404).json({ message: "Repo not found" });
+    }
 
-    return res.json(repo);
+    // Add difficulty level to response
+    let displayLevel = "intermediate";
+    if (repo.friendliness >= 0.65 && repo.complexity <= 0.35) {
+      displayLevel = "beginner";
+    } else if (repo.complexity >= 0.65 || repo.friendliness <= 0.3) {
+      displayLevel = "advanced";
+    }
+
+    return res.json({
+      ...repo,
+      difficulty_level: displayLevel,
+    });
   } catch (err) {
-    return res.status(500).json({ message: "Failed", err });
+    console.error("Error fetching repo by ID:", err);
+    return res.status(500).json({
+      message: "Failed to fetch repo",
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 };

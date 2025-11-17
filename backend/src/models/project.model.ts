@@ -98,6 +98,7 @@ export interface IProject extends Document {
   // Status
   needs_review?: boolean;
   summarizedAt?: Date;
+  file_tree: string[];
 
   // Timestamps
   last_updated: Date;
@@ -336,7 +337,13 @@ const projectSchema: Schema = new Schema(
       type: Boolean,
       default: false,
     },
-    summarizedAt: Date,
+    file_tree: {
+      type: [String],
+      default: [],
+    },
+    summarizedAt: {
+      type: Date,
+    },
 
     // Timestamps
     last_updated: {
