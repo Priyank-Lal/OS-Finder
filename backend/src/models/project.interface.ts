@@ -1,3 +1,5 @@
+import { Document } from "mongoose";
+
 export interface LicenseInfo {
   name?: string;
   key?: string;
@@ -67,6 +69,15 @@ export interface IProject extends Document {
   complexity: number;
   score: number;
   final_score: number;
+
+  // Detailed scoring (0-100 unless noted)
+  beginner_friendliness?: number; // 0-100
+  technical_complexity?: number; // 0-100
+  contribution_readiness?: number; // 0-100
+  overall_score?: number; // 0-100 final aggregated score
+  recommended_level?: "beginner" | "intermediate" | "advanced";
+  scoring_confidence?: number; // 0-1
+  score_breakdown?: Record<string, any>;
 
   // Issue tracking
   issue_data: IssueData;

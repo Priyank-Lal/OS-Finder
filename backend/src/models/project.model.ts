@@ -113,6 +113,15 @@ const projectSchema: Schema = new Schema(
       min: 0,
     },
 
+    // Detailed scoring (0-100)
+    beginner_friendliness: { type: Number, min: 0, max: 100, default: 0 },
+    technical_complexity: { type: Number, min: 0, max: 100, default: 0 },
+    contribution_readiness: { type: Number, min: 0, max: 100, default: 0 },
+    overall_score: { type: Number, min: 0, max: 100, default: 0 },
+    recommended_level: { type: String, enum: ["beginner", "intermediate", "advanced"], default: "intermediate" },
+    scoring_confidence: { type: Number, min: 0, max: 1, default: 0 },
+    score_breakdown: { type: Object, default: {} },
+
     // Issue tracking
     issue_data: {
       total_open_issues: { type: Number, default: 0, min: 0 },
@@ -260,5 +269,6 @@ projectSchema.index({ language: 1 });
 projectSchema.index({ final_score: -1 });
 projectSchema.index({ topics: 1 });
 projectSchema.index({ last_updated: -1 });
+projectSchema.index({ overall_score: -1 });
 
 export const Project = mongoose.model<IProject>("projects", projectSchema);

@@ -1,7 +1,7 @@
-import { computeScores } from "../utils/scoring";
+import { computeDetailedScores } from "../utils/scoring";
 
-export function mapGithubRepoToProject(response: any, lang: string) {
-  const repos = response.search.nodes.map((repo: any) => {
+export async function mapGithubRepoToProject(response: any, lang: string) {
+  const repos = await Promise.all(response.search.nodes.map(async (repo: any) => {
     const issueData = {
       total_open_issues: repo.issues?.totalCount || 0,
       good_first_issue_count: repo.goodFirstIssues?.totalCount || 0,
@@ -45,23 +45,26 @@ export function mapGithubRepoToProject(response: any, lang: string) {
       : 0;
 
     // Use new scoring system
-    const scores = computeScores({
-      ...repo,
-      issue_data: issueData,
-      has_contributing: hasContributing,
-      contributors: repo.contributors?.totalCount || 0,
-      stars: repo.stargazerCount,
-      summary_level: "intermediate", // Default, will be updated by AI
-      beginner_issue_total: beginnerTotal,
-      activity: {
-        avg_pr_merge_hours: avgMergeTime,
-        pr_merge_ratio: prMergeRatio,
-      },
-      readme_raw: repo.readme?.text || "",
-      contributing_raw: repo.contributing?.text || "",
-      language: repo.primaryLanguage?.name || lang,
-      topics: repo.repositoryTopics.nodes.map((t: any) => t.topic.name),
-    } as any);
+    const scores = await computeDetailedScores(
+      {
+        ...repo,
+        issue_data: issueData,
+        has_contributing: hasContributing,
+        contributors: repo.contributors?.totalCount || 0,
+        stars: repo.stargazerCount,
+        summary_level: "intermediate",
+        beginner_issue_total: beginnerTotal,
+        activity: {
+          avg_pr_merge_hours: avgMergeTime,
+          pr_merge_ratio: prMergeRatio,
+        },
+        readme_raw: repo.readme?.text || "",
+        contributing_raw: repo.contributing?.text || "",
+        language: repo.primaryLanguage?.name || lang,
+        topics: repo.repositoryTopics.nodes.map((t: any) => t.topic.name),
+      } as any,
+      { includeAIAnalysis: false }
+    );
 
     return {
       repoId: repo.id,
@@ -89,10 +92,14 @@ export function mapGithubRepoToProject(response: any, lang: string) {
         avg_pr_merge_hours: avgMergeTime,
         pr_merge_ratio: prMergeRatio,
       },
-      friendliness: scores.friendliness,
-      maintenance: scores.maintenance,
-      accessibility: scores.accessibility,
-      complexity: scores.complexity,
+      friendliness: scores.beginner_friendliness,
+      complexity: scores.technical_complexity,
+      accessibility: scores.contribution_readiness,
+      maintenance: scores.contribution_readiness, // or remove if unused
+      final_score: scores.overall_score,
+      recommended_level: scores.recommended_level,
+      scoring_confidence: scores.confidence,
+      score_breakdown: scores.breakdown,
       tech_stack: [],
       required_skills: [],
       main_contrib_areas: [],
@@ -103,7 +110,7 @@ export function mapGithubRepoToProject(response: any, lang: string) {
       last_commit: repo.defaultBranchRef?.target?.committedDate || null,
       last_updated: repo.updatedAt,
     };
-  });
+  }));
 
   return repos;
 }

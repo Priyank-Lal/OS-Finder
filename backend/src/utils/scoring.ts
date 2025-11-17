@@ -88,24 +88,3 @@ export async function computeDetailedScores(
   };
 }
 
-// ============================================================================
-// BACKWARDS COMPATIBLE FUNCTION
-// ============================================================================
-
-export function computeScores(repo: IProject) {
-  // This is a sync version for backwards compatibility
-  // It won't use AI analysis but will use improved logic
-
-  const beginnerResult = computeBeginnerFriendliness(repo);
-  const complexityResult = computeTechnicalComplexity(repo);
-  const contributionResult = computeContributionReadiness(repo);
-
-  return {
-    friendliness: beginnerResult.score / 100,
-    complexity: complexityResult.score / 100,
-    accessibility: contributionResult.score / 100,
-    maintenance: contributionResult.score / 100, // Reuse contribution as maintenance proxy
-  };
-}
-
-export { analyzeCodebaseComplexity };
