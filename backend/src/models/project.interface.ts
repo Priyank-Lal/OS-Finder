@@ -6,16 +6,13 @@ export interface LicenseInfo {
 }
 
 export interface IssueData {
-  total_open_issues: number;
-  good_first_issue_count: number;
-  help_wanted_count: number;
-  first_timers_count: number;
-  beginner_count: number;
-  bug_count: number;
-  enhancement_count: number;
-  documentation_count: number;
-  refactor_count: number;
-  high_priority_count: number;
+  total_open: number;
+  good_first_issue: number;
+  help_wanted: number;
+  beginner: number;
+  bug: number;
+  enhancement: number;
+  documentation: number;
 }
 
 export interface ActivityData {
@@ -37,78 +34,67 @@ export interface ContributionArea {
 export interface Task {
   title: string;
   why: string;
-  approx_effort: string;
+  approx_effort: "low" | "medium" | "high";
   example_issue_title?: string;
 }
 
+export interface ScoreBreakdown {
+  beginner_friendliness: Record<string, number>;
+  technical_complexity: Record<string, number>;
+  contribution_readiness: Record<string, number>;
+}
+
 export interface IProject extends Document {
-  // Core repository info
+  // ========== CORE INFO ==========
   repoId: string;
   repo_name: string;
   repo_url: string;
   owner: string;
-
-  // Repository metadata
-  language: string;
-  licenseInfo: LicenseInfo;
-  isArchived: boolean;
-  forkCount: number;
-  topics: string[];
   description: string;
+  language: string;
 
-  // Activity metrics
-  open_prs: number;
+  // ========== METADATA ==========
   stars: number;
+  forkCount: number;
   contributors: number;
-  has_contributing: boolean;
+  isArchived: boolean;
+  licenseInfo: LicenseInfo;
+  topics: string[];
 
-  // Scoring metrics (0-1 scale)
-  friendliness: number;
-  maintenance: number;
-  accessibility: number;
-  complexity: number;
-  score: number;
-  final_score: number;
-
-  // Detailed scoring (0-100 unless noted)
-  beginner_friendliness?: number; // 0-100
-  technical_complexity?: number; // 0-100
-  contribution_readiness?: number; // 0-100
-  overall_score?: number; // 0-100 final aggregated score
-  recommended_level?: "beginner" | "intermediate" | "advanced";
-  scoring_confidence?: number; // 0-1
-  score_breakdown?: Record<string, any>;
-
-  // Issue tracking
+  // ========== ACTIVITY ==========
+  open_prs: number;
   issue_data: IssueData;
-  beginner_issue_total: number;
-  beginner_issue_score: number;
-  accessibility_score_base: number;
-
-  // Activity tracking
   activity: ActivityData;
+  last_commit: Date;
+  last_updated: Date;
 
-  // AI-generated content
+  // ========== AI ANALYSIS ==========
   summary: string;
-  summary_level: "beginner" | "intermediate" | "advanced";
+  tech_stack: string[];
+  required_skills: string[];
+  categories: string[]; // Renamed from ai_categories for clarity
+  main_contrib_areas: ContributionArea[];
+
+  // ========== SCORING (0-100) ==========
+  beginner_friendliness: number;
+  technical_complexity: number;
+  contribution_readiness: number;
+  overall_score: number;
+  recommended_level: "beginner" | "intermediate" | "advanced";
+  scoring_confidence: number; // 0-1
+  score_breakdown: ScoreBreakdown;
+
+  // ========== TASKS ==========
+  beginner_tasks: Task[];
+  intermediate_tasks: Task[];
+
+  // ========== RAW DATA (for reprocessing) ==========
   readme_raw?: string;
   contributing_raw?: string;
-
-  // Analysis data
-  ai_categories: string[];
   issue_samples?: IssueSample[];
-  tech_stack?: string[];
-  required_skills?: string[];
-  main_contrib_areas?: ContributionArea[];
-  beginner_tasks?: Task[];
-  intermediate_tasks?: Task[];
 
-  // Status
-  needs_review?: boolean;
+  // ========== TIMESTAMPS ==========
   summarizedAt?: Date;
-  file_tree: string[];
-
-  // Timestamps
-  last_updated: Date;
-  last_commit: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }

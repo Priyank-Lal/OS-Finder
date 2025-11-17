@@ -1,17 +1,17 @@
-export function filterGithubRepos(repos: any) {
+export function filterGithubRepos(repos: any[]) {
   const filtered = repos.filter((repo: any) => {
-    // Must have minimum accessibility (contribution readiness)
-    if (repo.accessibility < 0.15) {
+    // Must have minimum contribution readiness (30/100)
+    if ((repo.contribution_readiness || 0) < 30) {
       console.log(
-        `Filtered ${repo.repo_name}: Low accessibility (${repo.accessibility})`
+        `Filtered ${repo.repo_name}: Low contribution readiness (${repo.contribution_readiness})`
       );
       return false;
     }
 
-    // Must have recent activity
-    if (repo.maintenance < 0.15) {
+    // Must have minimum overall score (25/100)
+    if ((repo.overall_score || 0) < 25) {
       console.log(
-        `Filtered ${repo.repo_name}: Low maintenance (${repo.maintenance})`
+        `Filtered ${repo.repo_name}: Low overall score (${repo.overall_score})`
       );
       return false;
     }
@@ -35,7 +35,7 @@ export function filterGithubRepos(repos: any) {
     }
 
     // Must have minimum contributors
-    if (repo.contributors < 2) {
+    if ((repo.contributors || 0) < 2) {
       console.log(
         `Filtered ${repo.repo_name}: Only ${repo.contributors} contributors`
       );
@@ -43,18 +43,17 @@ export function filterGithubRepos(repos: any) {
     }
 
     // Must have license
-    const hasLicense = !!repo.licenseInfo?.key;
-    if (!hasLicense) {
+    if (!repo.licenseInfo?.key) {
       console.log(`Filtered ${repo.repo_name}: No license`);
       return false;
     }
 
     // Filter out guides, tutorials, awesome lists
-    const forbiddenExact = ["guide", "tutorial", "book", "roadmap", "awesome"];
+    const forbiddenTerms = ["guide", "tutorial", "book", "roadmap", "awesome"];
     const repoNameLower = repo.repo_name.toLowerCase();
     const descLower = (repo.description || "").toLowerCase();
 
-    const isForbidden = forbiddenExact.some(
+    const isForbidden = forbiddenTerms.some(
       (term) => repoNameLower.includes(term) || descLower.startsWith(term)
     );
 
@@ -63,15 +62,17 @@ export function filterGithubRepos(repos: any) {
       return false;
     }
 
+    // Filter archived repos
     if (repo.isArchived) {
       console.log(`Filtered ${repo.repo_name}: Archived`);
       return false;
     }
 
-    if(repo)
-
     return true;
   });
 
+  console.log(
+    `Filtered ${repos.length - filtered.length} repos, kept ${filtered.length}`
+  );
   return filtered;
 }
