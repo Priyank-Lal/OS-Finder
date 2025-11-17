@@ -280,3 +280,5 @@ export async function processSummaries() {
     throw error;
   }
 }
+
+processSummaries()

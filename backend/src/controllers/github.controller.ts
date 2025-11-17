@@ -1,4 +1,4 @@
-import { Project, IProject } from "../models/project.model";
+import { Project } from "../models/project.model";
 import { _config } from "../config/config";
 import { graphql } from "@octokit/graphql";
 import { Request, Response } from "express";
