@@ -14,18 +14,6 @@ import mongoose from "mongoose";
 const QUEUE_CONCURRENCY = 5;
 const QUEUE_INTERVAL = 2500;
 const BATCH_LIMIT = 30;
-const NOTABLE_FILES = [
-  "package.json",
-  "requirements.txt",
-  "pyproject.toml",
-  "Dockerfile",
-  "README.md",
-  "CONTRIBUTING.md",
-  "setup.py",
-  "go.mod",
-  "pom.xml",
-  "build.gradle",
-];
 
 // Database connection
 export async function connectDB() {
@@ -50,58 +38,6 @@ export async function connectDB() {
 const octokit = new Octokit({ auth: _config.GITHUB_TOKEN });
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-// Fetch file tree with better error handling
-async function fetchFileTree(owner: string, name: string): Promise<string[]> {
-  try {
-    const treeRes = await octokit.request(
-      "GET /repos/{owner}/{repo}/git/trees/HEAD?recursive=1",
-      { owner, repo: name }
-    );
-
-    const tree = treeRes.data?.tree || [];
-    const topLevel = new Set<string>();
-    const notableFiles = new Set<string>();
-
-    for (const node of tree) {
-      const path: string = node.path || "";
-      const parts = path.split("/");
-
-      // Add top-level directories/files
-      if (parts.length > 1) {
-        topLevel.add(parts[0] + "/");
-      } else {
-        topLevel.add(parts[0]);
-      }
-
-      // Add notable files
-      const fileName = parts[parts.length - 1];
-      if (NOTABLE_FILES.includes(fileName)) {
-        notableFiles.add(fileName);
-      }
-
-      // Stop early if we have enough info
-      if (topLevel.size >= 12 && notableFiles.size >= 5) break;
-    }
-
-    return [...topLevel, ...notableFiles];
-  } catch (err: any) {
-    const status = err?.status || 0;
-    const message = err?.message || String(err);
-
-    if (status === 404) {
-      console.warn(`Repository tree not found for ${owner}/${name}`);
-    } else if (status === 403) {
-      console.warn(`Rate limit or access forbidden for ${owner}/${name}`);
-    } else if (status === 409) {
-      console.warn(`Empty repository ${owner}/${name}`);
-    } else {
-      console.warn(`Failed to fetch tree for ${owner}/${name}:`, message);
-    }
-
-    return [];
-  }
-}
 
 // Validate AI results before saving
 function validateAIResults(results: {
@@ -177,14 +113,6 @@ async function summarizeRepo(repo: any) {
       last_updated: repo.last_updated ?? repo.updatedAt ?? null,
     };
 
-    // Fetch file tree (best-effort)
-    console.log(`Fetching file tree for ${repoName}...`);
-    const fileTree = await fetchFileTree(owner, name);
-
-    if (fileTree.length === 0) {
-      console.warn(`No file tree data for ${repoName}, continuing without it`);
-    }
-
     // Phase 1: summary + level + categories (use readme + metadata)
     console.log(`Phase 1: Generating summary for ${repoName}...`);
     const phase1 = await generateReadmeSummary(readme, metadata);
@@ -193,11 +121,11 @@ async function summarizeRepo(repo: any) {
       console.warn(`Phase 1 failed for ${repoName}: no summary generated`);
     }
 
-    // Phase 2: tech stack + required skills (readme + file tree + topics)
+    // Phase 2: tech stack + required skills (readme + topics)
     console.log(`Phase 2: Analyzing tech stack for ${repoName}...`);
     const phase2 = await generateTechAndSkills({
       readme,
-      fileTree,
+      languages: ["javascript"],
       topics: metadata.topics,
     });
 
@@ -347,7 +275,6 @@ export async function processSummaries() {
     }
 
     await queue.onIdle();
-
   } catch (error) {
     console.error("❌ Fatal error during summarization:", error);
     throw error;

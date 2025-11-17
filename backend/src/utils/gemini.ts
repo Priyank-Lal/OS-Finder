@@ -3,7 +3,6 @@ import { GoogleGenAI } from "@google/genai";
 
 // --- Constants ---
 const MAX_README_LENGTH = 5000;
-const MAX_FILE_TREE_ITEMS = 50;
 const MAX_TOPICS = 20;
 const MAX_ISSUE_SAMPLES = 20;
 const MAX_CONTRIBUTING_LENGTH = 2000;
@@ -19,16 +18,14 @@ const keys = (_config.GEMINI_KEYS || "")
   .map((k) => k.trim())
   .filter(Boolean);
 
-if (!keys.length) {
-  throw new Error(
-    "No Gemini keys provided in GEMINI_KEYS environment variable"
-  );
-}
 
 let keyIndex = 0;
 
 function getNextKey() {
-  if (!keys.length) throw new Error("No Gemini keys provided");
+  if (!keys.length) {
+    console.error("No Gemini keys available — using empty key (AI requests will fail gracefully)");
+    return "";
+  }
   const k = keys[keyIndex];
   keyIndex = (keyIndex + 1) % keys.length;
   return k;
@@ -210,14 +207,21 @@ export async function generateReadmeSummary(
       activity: metadata?.activity ?? {},
     });
 
-    const prompt = `SYSTEM: You are an assistant that MUST respond ONLY with raw JSON. No explanation, no markdown, no code fences, no extraneous keys. Follow the schema exactly.
+    const prompt = `SYSTEM: You are an assistant that MUST respond ONLY with a single JSON object and nothing else. Do not return any prose, code fences, or commentary. If a value cannot be determined, return an empty string or empty array. Follow Output Schema exactly.
 
-OUTPUT FORMAT:
+OUTPUT_SCHEMA:
 {
-  "summary": "<short 6-7 sentence summary>",
-  "level": "beginner|intermediate|advanced",
-  "repo_categories": ["cat1","cat2",...]
+  "summary": "<short 6-7 sentence summary describing the project purpose and where contributors are most useful>",
+  "level": "beginner" | "intermediate" | "advanced",
+  "repo_categories": ["<category>", "...", ...] backend, ml-library, api-wrapper, testing, documentation, database-tool, security, devops, mobile, utility,etc.
 }
+
+RULES:
+- summary: maximum 100-120 words, present tense. Focus on what the project does and 1-2 sentence about likely contribution areas.
+- level: choose the *single* best label using README + metadata (see below). Use 'beginner' only when the repo actively shows onboarding signals (CONTRIBUTING, many good-first issues, small modules); 'advanced' only when deep infra/domain knowledge or multi-repo architecture is required.
+- repo_categories: 0–3 coarse tags drawn only from the allowed list. Use hyphenated lowercase tokens.
+- if categories not present in the given options, create a new one.
+- Use metadata as supporting signals but do not repeat metadata in summary.
 
 README:
 ${truncated}
@@ -227,7 +231,7 @@ ${metaStr}`;
 
     const cleaned = await callAI(prompt, {
       model: "gemini-2.5-flash-lite",
-      maxTokens: 400,
+      maxTokens: 900,
       temperature: 0.0,
       retries: 2,
       timeoutMs: 30000,
@@ -267,7 +271,7 @@ ${metaStr}`;
 // --- Phase 2: Tech stack & skills ---
 export async function generateTechAndSkills(context: {
   readme: string;
-  fileTree?: string[];
+  languages: string[]
   topics?: string[];
 }): Promise<{ tech_stack: string[]; required_skills: string[] }> {
   try {
@@ -277,36 +281,31 @@ export async function generateTechAndSkills(context: {
     }
 
     const readme = safeSlice(sanitizeInput(context.readme), MAX_README_LENGTH);
-    const fileTreeSnippet = ensureStringArray(context.fileTree).slice(
-      0,
-      MAX_FILE_TREE_ITEMS
-    );
     const topics = ensureStringArray(context.topics).slice(0, MAX_TOPICS);
 
-    const prompt = `SYSTEM: Respond ONLY with raw JSON.
+    const prompt = `SYSTEM: Respond ONLY with raw JSON and nothing else.
 
-OUTPUT SCHEMA:
+OUTPUT_SCHEMA:
 {
-  "tech_stack": ["React","TypeScript"],
-  "required_skills": ["React","TypeScript","Unit testing"]
+  "tech_stack": ["<TechName>", "..."],        // e.g., "React", "Node.js", "Postgres", etc.
+  "required_skills": ["<Skill>", "..."]      // e.g., "TypeScript", "Unit testing with Jest", etc.
 }
 
 INSTRUCTIONS:
-1. Identify concrete technologies and tools used in the project (use README and top-level file names).
-2. Identify practical skills a contributor needs (3-8 entries).
+1. Identify the project's concrete technologies from README, languages and topics. Prefer common canonical names (e.g., "Node.js", "TypeScript", "React", "Next.js", "Docker", "Postgres", "Redis", "GitHub Actions", "Jest",etc.).
+2. For required_skills, list practical, contributor-focused skills (3-8 entries). Prefer actionable phrases like "React + JSX", "TypeScript", "unit testing (Jest)", "writing GitHub Actions".
+3. Return arrays only. If uncertain, return empty arrays.
+
 
 README_SNIPPET:
 ${readme}
-
-FILE_TREE_TOPLEVEL:
-${JSON.stringify(fileTreeSnippet)}
 
 TOPICS:
 ${JSON.stringify(topics)}`;
 
     const cleaned = await callAI(prompt, {
       model: "gemini-2.5-flash-lite",
-      maxTokens: 300,
+      maxTokens: 600,
       temperature: 0.0,
       retries: 2,
       timeoutMs: 30000,
@@ -365,10 +364,25 @@ export async function generateContributionAreas(context: {
         )
       : "";
 
-    const prompt = `SYSTEM: Output ONLY raw JSON.
+    const prompt = `SYSTEM: Output ONLY raw JSON matching the schema. No extra text.
 
-OUTPUT SCHEMA:
-{ "main_contrib_areas": [{"area":"name","confidence":0.0,"reasons":["..."]}] }
+OUTPUT_SCHEMA:
+{
+  "main_contrib_areas": [
+    {
+      "area":"<short-hyphenated-or-phrase>",
+      "confidence": 0.0-1.0,
+      "reasons": ["short evidence strings - 1-3 items"]
+    }
+  ]
+}
+
+RULES:
+- Return 3–6 items, ranked by relevance (most relevant first).
+- area: short hyphenated or simple phrase (e.g., "documentation", "frontend-components", "ci-workflows", "tests", "bug-fixes").
+- confidence: decimal between 0.00 and 1.00 (2 decimal places).
+- reasons: 1–3 short reasons referencing evidence from inputs (issue labels/counts, sample issue titles, CONTRIBUTING.md, etc.).
+- If no strong evidence, return an empty array.
 
 INPUTS:
 ISSUE_COUNTS:${JSON.stringify(counts)}
@@ -379,7 +393,7 @@ CONTRIBUTING_MD_SNIPPET:${contributing}`;
 
     const cleaned = await callAI(prompt, {
       model: "gemini-2.5-flash-lite",
-      maxTokens: 300,
+      maxTokens: 600,
       temperature: 0.0,
       retries: 2,
       timeoutMs: 30000,
@@ -435,11 +449,22 @@ export async function generateTaskSuggestions(
 
     const prompt = `SYSTEM: Return ONLY raw JSON.
 
-OUTPUT SCHEMA:
-{ 
-  "beginner_tasks": [{"title":"..","why":"..","approx_effort":"low","example_issue_title":""}], 
-  "intermediate_tasks": [{"title":"..","why":"..","approx_effort":"medium","example_issue_title":""}] 
+OUTPUT_SCHEMA:
+{
+  "beginner_tasks": [
+    {"title":"<one-line task>", "why":"<one-line reason>", "approx_effort":"low|medium|high", "example_issue_title":"<optional>"}
+  ],
+  "intermediate_tasks": [
+    {"title":"...", "why":"...", "approx_effort":"low|medium|high", "example_issue_title":""}
+  ]
 }
+
+RULES:
+1. Provide 3–6 beginner tasks (prefer low effort) and 3–6 intermediate tasks (medium effort).
+2. Each task must be actionable and justified with 1-line "why".
+3. If an existing open issue closely matches a task, populate "example_issue_title".
+4. Avoid vague suggestions — be concrete (file/path/feature names if in inputs).
+5. If friendliness score is low (<0.3) and level == 'advanced', reduce beginner tasks to 0–2.
 
 INPUTS:
 PHASE1:${JSON.stringify(phase1)}
@@ -450,7 +475,7 @@ SCORES:${JSON.stringify(scores)}`;
 
     const cleaned = await callAI(prompt, {
       model: "gemini-2.5-flash-lite",
-      maxTokens: 400,
+      maxTokens: 800,
       temperature: 0.0,
       retries: 2,
       timeoutMs: 30000,
