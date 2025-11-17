@@ -1,8 +1,6 @@
 import { Project } from "../models/project.model";
 import { _config } from "../config/config";
-import { graphql } from "@octokit/graphql";
 import { Request, Response } from "express";
-import { computeScores } from "../utils/scoring";
 import { safeGithubQuery } from "../services/github.query";
 import { mapGithubRepoToProject } from "../services/github.mapper";
 import { filterGithubRepos } from "../services/github.filter";
