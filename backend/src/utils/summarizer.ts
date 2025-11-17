@@ -4,11 +4,18 @@ import {
   generateTechAndSkills,
   generateContributionAreas,
   generateTaskSuggestions,
-} from "./gemini";
-import { Octokit } from "octokit";
+} from "../ai";
 import { _config } from "../config/config";
 import { Project } from "../models/project.model";
 import mongoose from "mongoose";
+import { validateAIResults } from "../ai/gemini.utils";
+
+interface ProcessStats {
+  total: number;
+  successful: number;
+  failed: number;
+  skipped: number;
+}
 
 // Constants
 const QUEUE_CONCURRENCY = 5;
@@ -33,35 +40,6 @@ export async function connectDB() {
     console.error("Error connecting to MongoDB:", error);
     throw error;
   }
-}
-
-const octokit = new Octokit({ auth: _config.GITHUB_TOKEN });
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-// Validate AI results before saving
-function validateAIResults(results: {
-  phase1: any;
-  phase2: any;
-  phase3: any;
-  phase4: any;
-}): boolean {
-  const { phase1, phase2, phase3, phase4 } = results;
-
-  // At minimum, we need a summary or some content
-  const hasSummary = phase1?.summary && phase1.summary.length > 10;
-  const hasTechStack = phase2?.tech_stack && phase2.tech_stack.length > 0;
-  const hasSkills =
-    phase2?.required_skills && phase2.required_skills.length > 0;
-
-  if (!hasSummary && !hasTechStack && !hasSkills) {
-    console.warn(
-      "AI results validation failed: no meaningful content generated"
-    );
-    return false;
-  }
-
-  return true;
 }
 
 // Summarizes single repo (DB-first; only fetch file-tree via REST)
@@ -205,12 +183,6 @@ async function summarizeRepo(repo: any) {
 }
 
 // Statistics tracking
-interface ProcessStats {
-  total: number;
-  successful: number;
-  failed: number;
-  skipped: number;
-}
 
 export async function processSummaries() {
   const stats: ProcessStats = {
@@ -245,12 +217,12 @@ export async function processSummaries() {
       .lean(); // Use lean for better performance
 
     if (!repos.length) {
-      console.log("✓ No repos pending summarization.");
+      console.log("No repos pending summarization.");
       return;
     }
 
     stats.total = repos.length;
-    console.log(`\n📊 Starting summarization of ${repos.length} repos...\n`);
+    console.log(`Starting summarization of ${repos.length} repos...\n`);
 
     // Track progress
     let completed = 0;
@@ -276,9 +248,8 @@ export async function processSummaries() {
 
     await queue.onIdle();
   } catch (error) {
-    console.error("❌ Fatal error during summarization:", error);
+    console.error("Fatal error during summarization:", error);
     throw error;
   }
 }
 
-processSummaries()
