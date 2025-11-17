@@ -17,7 +17,32 @@ export interface GitHubRepoNode {
 
   readme?: { text?: string } | null;
   contributing?: { text?: string } | null;
+  codeOfConduct?: { text?: string } | null;
   contributors?: { totalCount: number };
+
+  // File tree structure
+  fileTree?: {
+    entries: {
+      name: string;
+      type: string;
+      object?: {
+        entries?: {
+          name: string;
+          type: string;
+        }[];
+      };
+    }[];
+  };
+
+  // Languages breakdown
+  languages?: {
+    edges: {
+      size: number;
+      node: {
+        name: string;
+      };
+    }[];
+  };
 
   issues: { totalCount: number };
   goodFirstIssues?: { totalCount: number };
@@ -34,18 +59,36 @@ export interface GitHubRepoNode {
     nodes: {
       title: string;
       labels: { nodes: { name: string }[] };
-      __typename: string;
+      createdAt: string;
+      comments: { totalCount: number };
+      timelineItems: {
+        nodes: {
+          __typename: string;
+          createdAt?: string;
+        }[];
+      };
     }[];
   };
 
   openPRs?: { totalCount: number };
   recentPRs?: {
     totalCount: number;
-    nodes: { createdAt: string; mergedAt?: string }[];
+    nodes: {
+      createdAt: string;
+      mergedAt?: string;
+      comments: { totalCount: number };
+    }[];
   };
 
   repositoryTopics: { nodes: { topic: { name: string } }[] };
-  defaultBranchRef?: { target?: { committedDate: string } };
+  defaultBranchRef?: {
+    target?: {
+      committedDate: string;
+      history: {
+        totalCount: number;
+      };
+    };
+  };
 }
 
 export interface GitHubResponse {
@@ -53,7 +96,6 @@ export interface GitHubResponse {
     nodes: GitHubRepoNode[];
   };
 }
-
 
 const query = `query ($search: String!, $count: Int!) {
   search(query: $search, type: REPOSITORY, first: $count) {
@@ -84,11 +126,24 @@ const query = `query ($search: String!, $count: Int!) {
           name
         }
 
-        # Latest commit on default branch
+        # Languages breakdown (for complexity analysis)
+        languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
+          edges {
+            size
+            node {
+              name
+            }
+          }
+        }
+
+        # Latest commit on default branch with commit count
         defaultBranchRef {
           target {
             ... on Commit {
               committedDate
+              history {
+                totalCount
+              }
             }
           }
         }
@@ -98,6 +153,24 @@ const query = `query ($search: String!, $count: Int!) {
           nodes {
             topic {
               name
+            }
+          }
+        }
+
+        # File tree structure (critical for complexity analysis)
+        fileTree: object(expression: "HEAD:") {
+          ... on Tree {
+            entries {
+              name
+              type
+              object {
+                ... on Tree {
+                  entries {
+                    name
+                    type
+                  }
+                }
+              }
             }
           }
         }
@@ -116,6 +189,13 @@ const query = `query ($search: String!, $count: Int!) {
           }
         }
 
+        # CODE_OF_CONDUCT.md (community health indicator)
+        codeOfConduct: object(expression: "HEAD:CODE_OF_CONDUCT.md") {
+          ... on Blob {
+            text
+          }
+        }
+
         # Contributor count
         contributors: mentionableUsers(first: 1) {
           totalCount
@@ -126,7 +206,7 @@ const query = `query ($search: String!, $count: Int!) {
           totalCount
         }
 
-        # Issues (titles + labels) for summarizer
+        # Issues with response time data
         issueSamples: issues(
           first: 20
           states: OPEN
@@ -134,12 +214,23 @@ const query = `query ($search: String!, $count: Int!) {
         ) {
           nodes {
             title
+            createdAt
             labels(first: 10) {
               nodes {
                 name
               }
             }
-            __typename
+            comments {
+              totalCount
+            }
+            timelineItems(first: 5, itemTypes: [ISSUE_COMMENT]) {
+              nodes {
+                __typename
+                ... on IssueComment {
+                  createdAt
+                }
+              }
+            }
           }
         }
 
@@ -172,7 +263,7 @@ const query = `query ($search: String!, $count: Int!) {
           totalCount
         }
 
-        bugIssues: issues(labels: ["bug", "Bug",], states: OPEN) {
+        bugIssues: issues(labels: ["bug", "Bug"], states: OPEN) {
           totalCount
         }
 
@@ -192,7 +283,7 @@ const query = `query ($search: String!, $count: Int!) {
           totalCount
         }
 
-        # Pull request activity
+        # Pull request activity with comment data
         openPRs: pullRequests(states: OPEN) {
           totalCount
         }
@@ -205,6 +296,9 @@ const query = `query ($search: String!, $count: Int!) {
           nodes {
             createdAt
             mergedAt
+            comments {
+              totalCount
+            }
           }
           totalCount
         }
@@ -239,4 +333,3 @@ export async function safeGithubQuery(
     return safeGithubQuery(variables, retries - 1);
   }
 }
-

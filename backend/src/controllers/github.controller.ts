@@ -11,7 +11,7 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
       lang,
       minStars,
     });
-    const mappedRepos = mapGithubRepoToProject(response, lang);
+    const mappedRepos = await mapGithubRepoToProject(response, lang);
     const filteredRepos = filterGithubRepos(mappedRepos);
 
     if (filteredRepos.length > 0) {
@@ -160,9 +160,9 @@ export const getRepoById = async (req: Request, res: Response) => {
 
     // Add difficulty level to response
     let displayLevel = "intermediate";
-    if (repo.friendliness >= 0.65 && repo.complexity <= 0.35) {
+    if (repo.beginner_friendliness >= 0.65 && repo.technical_complexity <= 0.35) {
       displayLevel = "beginner";
-    } else if (repo.complexity >= 0.65 || repo.friendliness <= 0.3) {
+    } else if (repo.technical_complexity >= 0.65 || repo.beginner_friendliness <= 0.3) {
       displayLevel = "advanced";
     }
 

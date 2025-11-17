@@ -1,6 +1,6 @@
 import { IProject } from "../models/project.interface";
 import { analyzeCodebaseComplexity, CodebaseComplexityAnalysis } from "../scoring";
-import { computeBeginnerFriendliness, DetailedScores } from "../scoring/scoring.beginner";
+import { computeBeginnerFriendliness,  } from "../scoring/scoring.beginner";
 import { computeTechnicalComplexity } from "../scoring/scoring.complexity";
 import { computeContributionReadiness } from "../scoring/scoring.contribution";
 

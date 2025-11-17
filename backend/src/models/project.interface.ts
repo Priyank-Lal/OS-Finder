@@ -6,23 +6,56 @@ export interface LicenseInfo {
 }
 
 export interface IssueData {
-  total_open: number;
-  good_first_issue: number;
-  help_wanted: number;
-  beginner: number;
-  bug: number;
-  enhancement: number;
-  documentation: number;
+  total_open_issues: number;
+  good_first_issue_count: number;
+  help_wanted_count: number;
+  beginner_count: number;
+  bug_count: number;
+  enhancement_count: number;
+  documentation_count: number;
 }
 
 export interface ActivityData {
   avg_pr_merge_hours: number | null;
   pr_merge_ratio: number;
+  avg_issue_response_hours?: number | null;
+  issue_response_rate?: number;
+  maintainer_activity_score?: number;
+  total_commits?: number;
+}
+
+export interface CommunityHealth {
+  has_code_of_conduct: boolean;
+  has_contributing: boolean;
+  has_issue_templates: boolean;
+  has_readme: boolean;
+}
+
+export interface FileTreeMetrics {
+  totalFiles: number;
+  totalDirectories: number;
+  maxDepth: number;
+  avgDepth: number;
+  hasTests: boolean;
+  hasDocs: boolean;
+  hasCI: boolean;
+  hasMonorepo: boolean;
+  configFiles: string[];
+  lockFiles: string[];
+  buildComplexity: number;
+  testToCodeRatio: number;
+}
+
+export interface LanguageBreakdown {
+  name: string;
+  size: number;
 }
 
 export interface IssueSample {
   title: string;
   labels: string[];
+  created_at?: string;
+  has_response?: boolean;
 }
 
 export interface ContributionArea {
@@ -39,9 +72,9 @@ export interface Task {
 }
 
 export interface ScoreBreakdown {
-  beginner_friendliness: Record<string, number>;
-  technical_complexity: Record<string, number>;
-  contribution_readiness: Record<string, number>;
+  beginner: Record<string, number>;
+  complexity: Record<string, number>;
+  contribution: Record<string, number>;
 }
 
 export interface IProject extends Document {
@@ -68,11 +101,19 @@ export interface IProject extends Document {
   last_commit: Date;
   last_updated: Date;
 
+  // ========== FILE STRUCTURE (NEW) ==========
+  file_tree?: string[];
+  file_tree_metrics?: FileTreeMetrics;
+  languages_breakdown?: LanguageBreakdown[];
+
+  // ========== COMMUNITY HEALTH (NEW) ==========
+  community_health?: CommunityHealth;
+
   // ========== AI ANALYSIS ==========
   summary: string;
   tech_stack: string[];
   required_skills: string[];
-  categories: string[]; // Renamed from ai_categories for clarity
+  categories: string[];
   main_contrib_areas: ContributionArea[];
 
   // ========== SCORING (0-100) ==========

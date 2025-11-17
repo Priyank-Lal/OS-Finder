@@ -33,6 +33,7 @@ async function summarizeRepo(repo: any) {
     const contributingMd =
       (repo.contributing_raw && String(repo.contributing_raw).trim()) || null;
     const issueSamples = repo.issue_samples || [];
+    const fileTreeMetrics = repo.file_tree_metrics || null;
 
     if (!readme) {
       console.warn(`Skipping ${repoName}: no README`);
@@ -75,29 +76,14 @@ async function summarizeRepo(repo: any) {
       contributing_md: contributingMd,
     });
 
-    // Phase 4: Task suggestions
-    console.log(`Phase 4: Generating task suggestions for ${repoName}...`);
-    const phase4 = await generateTaskSuggestions({
-      phase1,
-      phase2,
-      phase3,
-      issue_samples: issueSamples,
-      scores: {
-        beginner_friendliness: repo.beginner_friendliness || 0,
-        technical_complexity: repo.technical_complexity || 0,
-        contribution_readiness: repo.contribution_readiness || 0,
-      },
-      metadata,
-    });
-
-    // Validate results
-    if (!validateAIResults({ phase1, phase2, phase3, phase4 })) {
-      console.warn(`Validation failed for ${repoName}`);
+    // Validate results before continuing
+    if (!validateAIResults({ phase1, phase2, phase3, phase4: {} })) {
+      console.warn(`Validation failed for ${repoName} (phases 1-3)`);
       return;
     }
 
-    // Phase 5: Compute detailed scores
-    console.log(`Phase 5: Computing detailed scores for ${repoName}...`);
+    // Phase 4: Compute detailed scores with AI analysis
+    console.log(`Phase 4: Computing detailed scores for ${repoName}...`);
 
     const enrichedRepo = {
       ...repo,
@@ -109,22 +95,29 @@ async function summarizeRepo(repo: any) {
       issue_samples: issueSamples,
       issue_data: repo.issue_data || {},
       activity: repo.activity || {},
+      file_tree_metrics: fileTreeMetrics,
+      community_health: repo.community_health || {},
     };
 
-    // Optional AI complexity analysis
+    // Run AI complexity analysis with actual file tree metrics
     let aiAnalysis;
     if (_config.ENABLE_AI_ANALYSIS !== false) {
       try {
         console.log(`  Running AI complexity analysis for ${repoName}...`);
         aiAnalysis = await analyzeCodebaseComplexity(
           readme,
-          enrichedRepo.tech_stack,
+          fileTreeMetrics,
           metadata.language || "unknown",
           metadata.topics,
           contributingMd
         );
+        console.log(
+          `  AI Analysis: arch=${aiAnalysis.architecture_score}, setup=${aiAnalysis.setup_complexity}, level=${aiAnalysis.recommended_experience}`
+        );
       } catch (err) {
-        console.warn(`  AI analysis failed for ${repoName}, continuing...`);
+        console.warn(
+          `  AI analysis failed for ${repoName}, using fallback scores`
+        );
       }
     }
 
@@ -134,12 +127,30 @@ async function summarizeRepo(repo: any) {
     });
 
     console.log(`  Scores for ${repoName}:`, {
+      beginner: scores.beginner_friendliness,
+      complexity: scores.technical_complexity,
+      contribution: scores.contribution_readiness,
       overall: scores.overall_score,
       level: scores.recommended_level,
-      confidence: scores.confidence,
+      confidence: scores.confidence.toFixed(2),
     });
 
-    // Update database with clean fields
+    // Phase 5: Generate task suggestions (after scores are available)
+    console.log(`Phase 5: Generating task suggestions for ${repoName}...`);
+    const phase4 = await generateTaskSuggestions({
+      phase1,
+      phase2,
+      phase3,
+      issue_samples: issueSamples,
+      scores: {
+        beginner_friendliness: scores.beginner_friendliness,
+        technical_complexity: scores.technical_complexity,
+        contribution_readiness: scores.contribution_readiness,
+      },
+      metadata,
+    });
+
+    // Update database with all computed fields
     await Project.updateOne(
       { _id: repo._id },
       {
@@ -168,9 +179,9 @@ async function summarizeRepo(repo: any) {
       }
     );
 
-    console.log(`✓ Successfully summarized ${repoName}`);
+    console.log(`✓ Successfully summarized ${repoName}\n`);
   } catch (err: any) {
-    console.error(`Error summarizing ${repoName}:`, err.message);
+    console.error(`✗ Error summarizing ${repoName}:`, err.message);
     throw err;
   }
 }
@@ -194,10 +205,12 @@ export async function processSummaries() {
         { summary: { $exists: false } },
         { summary: "" },
         { summary: null },
+        // Re-process repos without file tree metrics
+        { file_tree_metrics: { $exists: false } },
       ],
     })
       .select(
-        "_id repo_url repo_name stars forkCount contributors topics language issue_data activity last_commit last_updated beginner_friendliness technical_complexity contribution_readiness readme_raw contributing_raw issue_samples"
+        "_id repo_url repo_name stars forkCount contributors topics language issue_data activity last_commit last_updated beginner_friendliness technical_complexity contribution_readiness readme_raw contributing_raw issue_samples file_tree file_tree_metrics community_health languages_breakdown"
       )
       .limit(BATCH_LIMIT)
       .lean();
@@ -226,7 +239,7 @@ export async function processSummaries() {
           console.log(
             `Progress: ${completed}/${repos.length} (${Math.round(
               (completed / repos.length) * 100
-            )}%)\n`
+            )}%)`
           );
         }
       });

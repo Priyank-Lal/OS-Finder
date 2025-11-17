@@ -71,6 +71,9 @@ const projectSchema: Schema = new Schema(
       default: [],
       index: true,
     },
+    has_contributing: {
+      type: Boolean,
+    },
 
     // ========== ACTIVITY ==========
     open_prs: {

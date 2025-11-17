@@ -1,20 +1,7 @@
 import { IProject } from "../models/project.interface";
 import { CodebaseComplexityAnalysis } from "./scoring.ai";
 import { WEIGHTS } from "./scoring.weights";
-
-export interface DetailedScores {
-  beginner_friendliness: number; // 0-100: How beginner-friendly
-  technical_complexity: number; // 0-100: How technically complex
-  contribution_readiness: number; // 0-100: How ready for contributions
-  overall_score: number; // 0-100: Weighted overall
-  recommended_level: string; // "beginner" | "intermediate" | "advanced"
-  confidence: number; // 0-1: How confident are we
-  breakdown: {
-    beginner: Record<string, number>;
-    complexity: Record<string, number>;
-    contribution: Record<string, number>;
-  };
-}
+import { clamp } from "./scoring.utils";
 
 export function computeBeginnerFriendliness(
   repo: IProject,
@@ -22,49 +9,143 @@ export function computeBeginnerFriendliness(
 ): { score: number; breakdown: Record<string, number> } {
   // 1. Documentation Score (0-100)
   const hasReadme = (repo.readme_raw?.length || 0) > 500;
-  const hasContributing = repo.has_contributing;
+  const hasContributing = !!(repo as any).contributing_raw;
   const hasClearDescription = (repo.description?.length || 0) > 50;
+  const communityHealth = (repo as any).community_health || {};
+  const hasCodeOfConduct = communityHealth.has_code_of_conduct || false;
 
-  const documentationScore =
-    (hasReadme ? 50 : 0) +
-    (hasContributing ? 30 : 0) +
-    (hasClearDescription ? 20 : 0);
+  let documentationScore = 0;
+
+  if (hasReadme) documentationScore += 40;
+  if (hasContributing) documentationScore += 30;
+  if (hasClearDescription) documentationScore += 15;
+  if (hasCodeOfConduct) documentationScore += 15; // New: Code of conduct is welcoming
 
   // 2. Issue Labels Score (0-100)
-  const gfi = repo.issue_data?.good_first_issue_count || 0;
-  const helpWanted = repo.issue_data?.help_wanted_count || 0;
-  const beginner = repo.issue_data?.beginner_count || 0;
-  const doc = repo.issue_data?.documentation_count || 0;
+  const issueData = repo.issue_data || {};
+  const gfi = issueData.good_first_issue_count || 0;
+  const helpWanted = issueData.help_wanted_count || 0;
+  const beginner = issueData.beginner_count || 0;
+  const doc = issueData.documentation_count || 0;
 
-  const totalBeginnerIssues = gfi + helpWanted + beginner + doc;
-  const issueLabelsScore = Math.min(
-    100,
-    gfi * 15 + helpWanted * 10 + beginner * 10 + doc * 5
-  );
+  // More nuanced scoring based on issue availability
+  let issueLabelsScore = 0;
 
-  // 3. Community Size Score (0-100)
-  // Sweet spot: 10-100 contributors (too few = inactive, too many = intimidating)
+  // Good first issues are the most valuable
+  if (gfi > 0) issueLabelsScore += 40;
+  else if (gfi >= 5) issueLabelsScore += 50;
+  else if (gfi >= 10) issueLabelsScore += 60;
+
+  // Help wanted and beginner issues
+  if (helpWanted > 0) issueLabelsScore += 20;
+  if (beginner > 0) issueLabelsScore += 20;
+
+  // Documentation issues are beginner-friendly
+  if (doc > 0) issueLabelsScore += 10;
+
+  // Cap at 100
+  issueLabelsScore = Math.min(100, issueLabelsScore);
+
+  // 3. Community Responsiveness Score (0-100)
+  const activity = (repo as any).activity || {};
+  const avgIssueResponseHours = activity.avg_issue_response_hours;
+  const issueResponseRate = activity.issue_response_rate || 0;
+  const maintainerActivity = activity.maintainer_activity_score || 0;
+
+  let responsivenessScore = 0;
+
+  // Score based on average response time
+  if (avgIssueResponseHours !== null && avgIssueResponseHours !== undefined) {
+    if (avgIssueResponseHours < 24) {
+      responsivenessScore += 40; // Excellent: < 1 day
+    } else if (avgIssueResponseHours < 48) {
+      responsivenessScore += 30; // Good: < 2 days
+    } else if (avgIssueResponseHours < 168) {
+      responsivenessScore += 20; // Acceptable: < 1 week
+    } else {
+      responsivenessScore += 10; // Slow but something
+    }
+  }
+
+  // Response rate (percentage of issues that get responses)
+  responsivenessScore += issueResponseRate * 30;
+
+  // Maintainer activity
+  responsivenessScore += maintainerActivity * 30;
+
+  // 4. Community Size Score (0-100)
+  // Sweet spot: 5-100 contributors
   const contributors = repo.contributors || 0;
   const stars = repo.stars || 0;
 
   let communityScore = 0;
-  if (contributors >= 5 && contributors <= 50) {
-    communityScore = 100; // Sweet spot for beginners
-  } else if (contributors < 5) {
-    communityScore = contributors * 20; // 0-4 contributors
+
+  if (contributors < 2) {
+    // Too few contributors = likely inactive
+    communityScore = 10;
+  } else if (contributors >= 2 && contributors <= 10) {
+    // Very small team: good for beginners (personal attention)
+    communityScore = 40 + (contributors - 2) * 5;
+  } else if (contributors > 10 && contributors <= 50) {
+    // Sweet spot for beginners
+    communityScore = 90 + (contributors - 10) * 0.25;
+  } else if (contributors > 50 && contributors <= 200) {
+    // Still good but less personal
+    communityScore = Math.max(60, 100 - (contributors - 50) * 0.2);
   } else {
-    // Diminishing returns after 50
-    communityScore = Math.max(40, 100 - (contributors - 50) * 0.5);
+    // Very large projects can be intimidating
+    communityScore = Math.max(40, 70 - (contributors - 200) * 0.05);
   }
 
-  // Adjust for stars (too popular can be intimidating)
-  if (stars > 50000) communityScore *= 0.7;
+  // Adjust for popularity (extremely popular repos can be intimidating)
+  if (stars > 50000) {
+    communityScore *= 0.75;
+  } else if (stars > 10000) {
+    communityScore *= 0.9;
+  }
 
-  // 4. Codebase Simplicity Score (0-100)
+  // 5. Codebase Simplicity Score (0-100)
   let codebaseSimplicityScore = 50; // Default
 
-  if (aiAnalysis) {
-    // Invert AI complexity scores (high complexity = low simplicity)
+  const fileMetrics = (repo as any).file_tree_metrics;
+
+  if (fileMetrics) {
+    // Use actual file tree metrics
+    const totalFiles = fileMetrics.totalFiles || 0;
+    const maxDepth = fileMetrics.maxDepth || 0;
+    const hasTests = fileMetrics.hasTests || false;
+    const hasMonorepo = fileMetrics.hasMonorepo || false;
+
+    // Files count (fewer is simpler)
+    let filesScore = 100;
+    if (totalFiles <= 20) filesScore = 90;
+    else if (totalFiles <= 50) filesScore = 80;
+    else if (totalFiles <= 100) filesScore = 60;
+    else if (totalFiles <= 200) filesScore = 40;
+    else if (totalFiles <= 500) filesScore = 25;
+    else filesScore = 10;
+
+    // Directory depth (shallower is simpler)
+    let depthScore = 100;
+    if (maxDepth <= 2) depthScore = 100;
+    else if (maxDepth <= 3) depthScore = 80;
+    else if (maxDepth <= 4) depthScore = 60;
+    else if (maxDepth <= 6) depthScore = 40;
+    else depthScore = 20;
+
+    // Tests are good but add complexity for beginners
+    const testPenalty = hasTests ? -5 : 0;
+
+    // Monorepo is significantly more complex
+    const monorepoPenalty = hasMonorepo ? -20 : 0;
+
+    codebaseSimplicityScore = clamp(
+      filesScore * 0.5 + depthScore * 0.5 + testPenalty + monorepoPenalty,
+      0,
+      100
+    );
+  } else if (aiAnalysis) {
+    // Fall back to AI analysis
     const avgComplexity =
       (aiAnalysis.architecture_score +
         aiAnalysis.abstraction_level +
@@ -74,34 +155,61 @@ export function computeBeginnerFriendliness(
     codebaseSimplicityScore = 100 - avgComplexity * 10;
   }
 
-  // 5. Setup Ease Score (0-100)
+  // 6. Setup Ease Score (0-100)
   let setupEaseScore = 50; // Default
 
-  if (aiAnalysis) {
+  if (fileMetrics) {
+    const buildComplexity = fileMetrics.buildComplexity || 0;
+    const hasCI = fileMetrics.hasCI || false;
+    const configFilesCount = (fileMetrics.configFiles || []).length;
+
+    // Invert build complexity (higher build complexity = lower setup ease)
+    setupEaseScore = 100 - buildComplexity * 10;
+
+    // Multiple config files make setup harder
+    setupEaseScore -= Math.min(30, configFilesCount * 3);
+
+    // CI can help but also indicates more complex setup
+    if (hasCI) setupEaseScore -= 5;
+
+    setupEaseScore = clamp(setupEaseScore, 0, 100);
+  } else if (aiAnalysis) {
     setupEaseScore = 100 - aiAnalysis.setup_complexity * 10;
   }
 
-  // Bonus for common beginner languages
-  const beginnerLangs = ["javascript", "python", "html", "css", "markdown"];
+  // Bonus for beginner-friendly languages
+  const beginnerLangs = [
+    "javascript",
+    "python",
+    "html",
+    "css",
+    "markdown",
+    "ruby",
+  ];
   if (beginnerLangs.includes(repo.language?.toLowerCase() || "")) {
-    setupEaseScore = Math.min(100, setupEaseScore + 10);
+    setupEaseScore = Math.min(100, setupEaseScore + 15);
   }
 
   const breakdown = {
-    documentation: documentationScore,
-    issueLabels: issueLabelsScore,
-    communitySize: communityScore,
-    codebaseSimplicity: codebaseSimplicityScore,
-    setupEase: setupEaseScore,
+    documentation: Math.round(documentationScore),
+    issueLabels: Math.round(issueLabelsScore),
+    responsiveness: Math.round(responsivenessScore),
+    communitySize: Math.round(communityScore),
+    codebaseSimplicity: Math.round(codebaseSimplicityScore),
+    setupEase: Math.round(setupEaseScore),
   };
 
-  // Weighted average
+  // Updated weighted average
   const score =
-    breakdown.documentation * WEIGHTS.beginner.documentation +
-    breakdown.issueLabels * WEIGHTS.beginner.issueLabels +
-    breakdown.communitySize * WEIGHTS.beginner.communitySize +
-    breakdown.codebaseSimplicity * WEIGHTS.beginner.codebaseSimplicity +
-    breakdown.setupEase * WEIGHTS.beginner.setupEase;
+    breakdown.documentation * 0.2 +
+    breakdown.issueLabels * 0.2 +
+    breakdown.responsiveness * 0.2 +
+    breakdown.communitySize * 0.15 +
+    breakdown.codebaseSimplicity * 0.15 +
+    breakdown.setupEase * 0.1;
 
-  return { score: Math.round(score), breakdown };
+  return {
+    score: clamp(Math.round(score), 0, 100),
+    breakdown,
+  };
 }
