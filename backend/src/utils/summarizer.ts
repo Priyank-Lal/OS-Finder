@@ -9,6 +9,8 @@ import { _config } from "../config/config";
 import { Project } from "../models/project.model";
 import mongoose from "mongoose";
 import { validateAIResults } from "../ai/gemini.utils";
+import { computeDetailedScores } from "./scoring";
+import { analyzeCodebaseComplexity } from "../scoring/scoring.ai";
 
 interface ProcessStats {
   total: number;
@@ -103,7 +105,7 @@ async function summarizeRepo(repo: any) {
     console.log(`Phase 2: Analyzing tech stack for ${repoName}...`);
     const phase2 = await generateTechAndSkills({
       readme,
-      languages: ["javascript"],
+      languages: [metadata.language || "javascript"],
       topics: metadata.topics,
     });
 
@@ -145,11 +147,84 @@ async function summarizeRepo(repo: any) {
       return;
     }
 
+    // ===== NEW: PHASE 5 - COMPUTE DETAILED SCORES =====
+    console.log(`Phase 5: Computing detailed scores for ${repoName}...`);
+
+    // Build complete repo object with all analysis data
+    const enrichedRepo = {
+      ...repo,
+      readme_raw: readme,
+      contributing_raw: contributingMd,
+      has_contributing: !!contributingMd,
+      tech_stack: phase2.tech_stack || [],
+      required_skills: phase2.required_skills || [],
+      ai_categories: phase1.repo_categories || [],
+      summary_level: phase1.level || "intermediate",
+      issue_samples: issueSamplesFromDb,
+      // Ensure all required fields are present
+      issue_data: repo.issue_data || {},
+      activity: repo.activity || {},
+      stars: metadata.stars,
+      contributors: metadata.contributors,
+      topics: metadata.topics,
+      language: metadata.language,
+      file_tree: phase2.tech_stack || [], // Use tech_stack as proxy if file_tree not available
+    };
+
+    // Optional: Run AI complexity analysis for more accurate scoring
+    let aiAnalysis;
+    if (_config.ENABLE_AI_ANALYSIS !== false) {
+      try {
+        console.log(`  Running AI complexity analysis for ${repoName}...`);
+        aiAnalysis = await analyzeCodebaseComplexity(
+          readme,
+          enrichedRepo.file_tree,
+          metadata.language || "unknown",
+          metadata.topics,
+          contributingMd
+        );
+        console.log(`  AI analysis complete for ${repoName}`);
+      } catch (err) {
+        console.warn(
+          `  AI complexity analysis failed for ${repoName}, continuing without it:`,
+          err
+        );
+      }
+    }
+
+    // Compute detailed scores
+    const scores = await computeDetailedScores(enrichedRepo as any, {
+      aiAnalysis,
+      includeAIAnalysis: false, // We already ran it above if enabled
+    });
+
+    console.log(`  Scores for ${repoName}:`, {
+      beginner_friendliness: scores.beginner_friendliness,
+      technical_complexity: scores.technical_complexity,
+      contribution_readiness: scores.contribution_readiness,
+      overall_score: scores.overall_score,
+      recommended_level: scores.recommended_level,
+      confidence: scores.confidence,
+    });
+
+    // Update legacy 0-1 scores for backward compatibility
+    const legacyScores = {
+      friendliness: scores.beginner_friendliness / 100,
+      complexity: scores.technical_complexity / 100,
+      accessibility: scores.contribution_readiness / 100,
+      maintenance: scores.contribution_readiness / 100,
+      score: scores.overall_score / 100,
+      final_score: scores.overall_score,
+    };
+
+    // ===== END PHASE 5 =====
+
     // Persist all new fields to DB (do a safe $set)
     await Project.updateOne(
       { _id: repo._id },
       {
         $set: {
+          // AI Analysis results
           summary: phase1.summary || "",
           summary_level: phase1.level || "intermediate",
           ai_categories: phase1.repo_categories || [],
@@ -158,13 +233,32 @@ async function summarizeRepo(repo: any) {
           main_contrib_areas: phase3.main_contrib_areas || [],
           beginner_tasks: phase4.beginner_tasks || [],
           intermediate_tasks: phase4.intermediate_tasks || [],
+
+          // New 0-100 scoring system
+          beginner_friendliness: scores.beginner_friendliness,
+          technical_complexity: scores.technical_complexity,
+          contribution_readiness: scores.contribution_readiness,
+          overall_score: scores.overall_score,
+          recommended_level: scores.recommended_level,
+          scoring_confidence: scores.confidence,
+          score_breakdown: scores.breakdown,
+
+          // Legacy 0-1 scores for backward compatibility
+          friendliness: legacyScores.friendliness,
+          complexity: legacyScores.complexity,
+          accessibility: legacyScores.accessibility,
+          maintenance: legacyScores.maintenance,
+          score: legacyScores.score,
+          final_score: legacyScores.final_score,
+
+          // Status
           needs_review: false,
           summarizedAt: new Date(),
         },
       }
     );
 
-    console.log(`✓ Successfully summarized ${repoName}`);
+    console.log(`✓ Successfully summarized and scored ${repoName}`);
   } catch (err: any) {
     console.error(`Error summarizing ${repoName}:`, err.message);
 
@@ -211,7 +305,7 @@ export async function processSummaries() {
       ],
     })
       .select(
-        "_id repo_url repo_name summary stars forkCount contributors topics language issue_data activity last_commit last_updated friendliness complexity maintenance readme_raw contributing_raw issue_samples"
+        "_id repo_url repo_name summary stars forkCount contributors topics language issue_data activity last_commit last_updated friendliness complexity maintenance readme_raw contributing_raw issue_samples file_tree"
       )
       .limit(BATCH_LIMIT)
       .lean(); // Use lean for better performance
@@ -240,16 +334,22 @@ export async function processSummaries() {
           console.log(
             `Progress: ${completed}/${stats.total} (${Math.round(
               (completed / stats.total) * 100
-            )}%)`
+            )}%)\n`
           );
         }
       });
     }
 
     await queue.onIdle();
+
+    // Print final statistics
+    console.log("\n=== Summarization Complete ===");
+    console.log(`Total repos processed: ${stats.total}`);
+    console.log(`Successful: ${stats.successful}`);
+    console.log(`Failed: ${stats.failed}`);
+    console.log(`Skipped: ${stats.skipped}`);
   } catch (error) {
     console.error("Fatal error during summarization:", error);
     throw error;
   }
 }
-
