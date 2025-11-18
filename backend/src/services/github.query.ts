@@ -110,23 +110,20 @@ const query = `query ($search: String!, $count: Int!) {
         isArchived
         updatedAt
 
-        # License
         licenseInfo {
           key
           name
         }
 
-        # Owner
         owner {
           login
         }
 
-        # Primary language
         primaryLanguage {
           name
         }
 
-        # Languages breakdown (for complexity analysis)
+        # Languages breakdown (keep - cheap)
         languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
           edges {
             size
@@ -136,7 +133,7 @@ const query = `query ($search: String!, $count: Int!) {
           }
         }
 
-        # Latest commit on default branch with commit count
+        # Default branch last commit + commit history (cheap)
         defaultBranchRef {
           target {
             ... on Commit {
@@ -148,7 +145,7 @@ const query = `query ($search: String!, $count: Int!) {
           }
         }
 
-        # Repo topics (up to 10)
+        # Repo topics (cheap)
         repositoryTopics(first: 10) {
           nodes {
             topic {
@@ -157,133 +154,57 @@ const query = `query ($search: String!, $count: Int!) {
           }
         }
 
-        # File tree structure (critical for complexity analysis)
-        fileTree: object(expression: "HEAD:") {
-          ... on Tree {
-            entries {
-              name
-              type
-              object {
-                ... on Tree {
-                  entries {
-                    name
-                    type
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        # README.md content
-        readme: object(expression: "HEAD:README.md") {
-          ... on Blob {
-            text
-          }
-        }
-
-        # CONTRIBUTING.md (optional)
-        contributing: object(expression: "HEAD:CONTRIBUTING.md") {
-          ... on Blob {
-            text
-          }
-        }
-
-        # CODE_OF_CONDUCT.md (community health indicator)
-        codeOfConduct: object(expression: "HEAD:CODE_OF_CONDUCT.md") {
-          ... on Blob {
-            text
-          }
-        }
-
-        # Contributor count
-        contributors: mentionableUsers(first: 1) {
-          totalCount
-        }
-
-        # Total open issues
-        issues(states: OPEN) {
-          totalCount
-        }
-
-        # Issues with response time data
+        # KEEP issueSample basics (needed for scoring) — lightweight, no timelineItems
         issueSamples: issues(
-          first: 20
+          first: 5
           states: OPEN
           orderBy: { field: CREATED_AT, direction: DESC }
         ) {
           nodes {
             title
             createdAt
-            labels(first: 10) {
+            labels(first: 5) {
               nodes {
                 name
-              }
-            }
-            comments {
-              totalCount
-            }
-            timelineItems(first: 5, itemTypes: [ISSUE_COMMENT]) {
-              nodes {
-                __typename
-                ... on IssueComment {
-                  createdAt
-                }
               }
             }
           }
         }
 
-        # Standard issue categories
+        # KEEP standard issue categories (cheap)
+        issues(states: OPEN) { totalCount }
+
         goodFirstIssues: issues(
           labels: ["good first issue", "good-first-issue"]
           states: OPEN
-        ) {
-          totalCount
-        }
+        ) { totalCount }
 
         helpWantedIssues: issues(
           labels: ["help wanted", "help-wanted"]
           states: OPEN
-        ) {
-          totalCount
-        }
+        ) { totalCount }
 
         firstTimers: issues(
           labels: ["first-timers-only", "first timers only"]
           states: OPEN
-        ) {
-          totalCount
-        }
+        ) { totalCount }
 
         beginnerIssues: issues(
           labels: ["beginner", "easy"]
           states: OPEN
-        ) {
-          totalCount
-        }
+        ) { totalCount }
 
-        bugIssues: issues(labels: ["bug", "Bug"], states: OPEN) {
-          totalCount
-        }
+        bugIssues: issues(labels: ["bug", "Bug"], states: OPEN) { totalCount }
 
-        enhancementIssues: issues(labels: ["enhancement"], states: OPEN) {
-          totalCount
-        }
+        enhancementIssues: issues(labels: ["enhancement"], states: OPEN) { totalCount }
 
-        documentationIssues: issues(labels: ["documentation"], states: OPEN) {
-          totalCount
-        }
+        documentationIssues: issues(labels: ["documentation"], states: OPEN) { totalCount }
 
-        refactorIssues: issues(labels: ["refactor"], states: OPEN) {
-          totalCount
-        }
+        refactorIssues: issues(labels: ["refactor"], states: OPEN) { totalCount }
 
-        highPriorityIssues: issues(labels: ["high priority"], states: OPEN) {
-          totalCount
-        }
+        highPriorityIssues: issues(labels: ["high priority"], states: OPEN) { totalCount }
 
-        # Pull request activity with comment data
+        # Pull request activity — REMOVE comments (heavy)
         openPRs: pullRequests(states: OPEN) {
           totalCount
         }
@@ -296,10 +217,12 @@ const query = `query ($search: String!, $count: Int!) {
           nodes {
             createdAt
             mergedAt
-            comments {
-              totalCount
-            }
           }
+          totalCount
+        }
+
+        # Contributors count (cheap)
+        contributors: mentionableUsers(first: 1) {
           totalCount
         }
       }
@@ -322,7 +245,7 @@ export async function safeGithubQuery(
   const searchQuery = `language:${metadata?.lang} stars:>${metadata?.minStars} fork:false archived:false pushed:>=${dateString}`;
   const variables = {
     search: searchQuery,
-    count: 3,
+    count: 2,
   };
 
   try {

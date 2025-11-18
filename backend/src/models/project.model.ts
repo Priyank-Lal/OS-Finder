@@ -46,7 +46,7 @@ const projectSchema: Schema = new Schema(
     },
     file_tree: {
       type: [String],
-    },
+    }, // not necessary in db
     file_tree_metrics: {
       totalFiles: {
         type: Number,
@@ -90,13 +90,13 @@ const projectSchema: Schema = new Schema(
         type: Number,
         default: 0,
       },
-    },
+    }, // not necessary in db
     community_health: {
       has_code_of_conduct: { type: Boolean },
       has_contributing: { type: Boolean },
       has_issue_templates: { type: Boolean },
       has_readme: { type: Boolean },
-    },
+    }, // not necessary in db
 
     // ========== METADATA ==========
     stars: {
@@ -262,8 +262,8 @@ const projectSchema: Schema = new Schema(
     },
 
     // ========== RAW DATA ==========
-    readme_raw: String,
-    contributing_raw: String,
+    readme_raw: String, // not necessary in db
+    contributing_raw: String, // not necessary in db
     issue_samples: {
       type: [
         {
@@ -274,7 +274,7 @@ const projectSchema: Schema = new Schema(
         },
       ],
       default: [],
-    },
+    }, // not necessary in db?
 
     // ========== TIMESTAMPS ==========
     summarizedAt: {

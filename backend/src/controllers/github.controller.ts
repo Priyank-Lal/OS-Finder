@@ -8,7 +8,8 @@ import { Request, Response } from "express";
 export const fetchRepos = async (lang: string, minStars: number = 100) => {
   try {
     const response = await safeGithubQuery({ lang, minStars });
-
+    console.log(response.search.nodes.length);
+    
     const mapped = await mapGithubRepoToProject(response, lang);
     const filtered = filterGithubRepos(mapped);
 
