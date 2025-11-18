@@ -4,6 +4,20 @@ import { computeBeginnerFriendliness,  } from "../scoring/scoring.beginner";
 import { computeTechnicalComplexity } from "../scoring/scoring.complexity";
 import { computeContributionReadiness } from "../scoring/scoring.contribution";
 
+interface DetailedScores {
+  beginner_friendliness: number;
+  technical_complexity: number;
+  contribution_readiness: number;
+  overall_score: number;
+  recommended_level: string;
+  confidence: number;
+  breakdown: {
+    beginner: Record<string, number>;
+    complexity: Record<string, number>;
+    contribution: Record<string, number>;
+  };
+}
+
 export async function computeDetailedScores(
   repo: IProject,
   options?: {
@@ -15,7 +29,7 @@ export async function computeDetailedScores(
 
   // Optionally run AI analysis
   if (options?.includeAIAnalysis && !aiAnalysis) {
-    const fileTree = repo.tech_stack || [];
+    const fileTree = repo.file_tree_metrics || null;
     aiAnalysis = await analyzeCodebaseComplexity(
       repo.readme_raw || "",
       fileTree,
@@ -63,15 +77,15 @@ export async function computeDetailedScores(
   }
 
   // Confidence based on data completeness
-  let confidence = 0.5; // Base confidence
-
-  if (repo.readme_raw && repo.readme_raw.length > 500) confidence += 0.1;
-  if (repo.has_contributing) confidence += 0.1;
-  if ((repo.issue_data?.total_open_issues || 0) > 5) confidence += 0.1;
-  if (repo.activity?.pr_merge_ratio) confidence += 0.1;
-  if (aiAnalysis) confidence += 0.2;
-
-  confidence = Math.min(1, confidence);
+    let confidence = 0.5; // Base confidence
+  
+    if (repo.readme_raw && repo.readme_raw.length > 500) confidence += 0.1;
+    if (repo.contributing_raw && repo.contributing_raw.length > 0) confidence += 0.1;
+    if ((repo.issue_data?.total_open_issues || 0) > 5) confidence += 0.1;
+    if (repo.activity?.pr_merge_ratio) confidence += 0.1;
+    if (aiAnalysis) confidence += 0.2;
+  
+    confidence = Math.min(1, confidence);
 
   return {
     beginner_friendliness: adjustedFriendliness,

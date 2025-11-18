@@ -1,3 +1,4 @@
+const MAX_DAYS_SINCE_COMMIT = 120;
 export function filterGithubRepos(repos: any[]) {
   const filtered = repos.filter((repo: any) => {
     // Must have minimum contribution readiness (30/100)
@@ -25,7 +26,7 @@ export function filterGithubRepos(repos: any[]) {
 
     const diffDays =
       (Date.now() - lastCommit.getTime()) / (1000 * 60 * 60 * 24);
-    if (diffDays > 120) {
+    if (diffDays > MAX_DAYS_SINCE_COMMIT) {
       console.log(
         `Filtered ${repo.repo_name}: Last commit ${Math.round(
           diffDays

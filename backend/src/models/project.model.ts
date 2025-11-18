@@ -8,13 +8,11 @@ const projectSchema: Schema = new Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,
     },
     repo_name: {
       type: String,
       required: true,
       trim: true,
-      index: true,
     },
     repo_url: {
       type: String,
@@ -28,7 +26,6 @@ const projectSchema: Schema = new Schema(
       type: String,
       required: true,
       trim: true,
-      index: true,
     },
     description: {
       type: String,
@@ -37,7 +34,6 @@ const projectSchema: Schema = new Schema(
     language: {
       type: String,
       required: true,
-      index: true,
     },
 
     // ========== METADATA ==========
@@ -45,7 +41,6 @@ const projectSchema: Schema = new Schema(
       type: Number,
       default: 0,
       min: 0,
-      index: true,
     },
     forkCount: {
       type: Number,
@@ -60,7 +55,6 @@ const projectSchema: Schema = new Schema(
     isArchived: {
       type: Boolean,
       default: false,
-      index: true,
     },
     licenseInfo: {
       name: String,
@@ -69,7 +63,6 @@ const projectSchema: Schema = new Schema(
     topics: {
       type: [String],
       default: [],
-      index: true,
     },
     has_contributing: {
       type: Boolean,
@@ -97,19 +90,16 @@ const projectSchema: Schema = new Schema(
     last_commit: {
       type: Date,
       default: null,
-      index: true,
     },
     last_updated: {
       type: Date,
       required: true,
-      index: true,
     },
 
     // ========== AI ANALYSIS ==========
     summary: {
       type: String,
       default: "",
-      index: "text",
     },
     tech_stack: {
       type: [String],
@@ -122,7 +112,6 @@ const projectSchema: Schema = new Schema(
     categories: {
       type: [String],
       default: [],
-      index: true,
     },
     main_contrib_areas: {
       type: [
@@ -159,13 +148,11 @@ const projectSchema: Schema = new Schema(
       min: 0,
       max: 100,
       default: 0,
-      index: true,
     },
     recommended_level: {
       type: String,
       enum: ["beginner", "intermediate", "advanced"],
       default: "intermediate",
-      index: true,
     },
     scoring_confidence: {
       type: Number,
@@ -224,7 +211,18 @@ const projectSchema: Schema = new Schema(
     // ========== TIMESTAMPS ==========
     summarizedAt: {
       type: Date,
-      index: true,
+    },
+
+    summarization_attempts: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    last_summarization_error: {
+      type: String,
+    },
+    last_summarization_attempt: {
+      type: Date,
     },
   },
   {
@@ -233,18 +231,10 @@ const projectSchema: Schema = new Schema(
   }
 );
 
-// ========== INDEXES ==========
-// Compound indexes for common queries
-projectSchema.index({ language: 1, overall_score: -1 });
-projectSchema.index({ categories: 1, overall_score: -1 });
-projectSchema.index({ recommended_level: 1, overall_score: -1 });
-projectSchema.index({ last_updated: -1 });
+projectSchema.index({ language: 1 });
+projectSchema.index({ categories: 1 });
+projectSchema.index({ recommended_level: 1 });
 
-// Text search index
-projectSchema.index({
-  summary: "text",
-  repo_name: "text",
-  description: "text",
-});
+projectSchema.index({ overall_score: -1 });
 
-export const Project = mongoose.model<IProject>("projects", projectSchema);
+export const Project = mongoose.model<IProject>("Projects", projectSchema);

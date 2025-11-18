@@ -1,151 +1,80 @@
 import { Project } from "../models/project.model";
-import { _config } from "../config/config";
-import { Request, Response } from "express";
 import { safeGithubQuery } from "../services/github.query";
 import { mapGithubRepoToProject } from "../services/github.mapper";
 import { filterGithubRepos } from "../services/github.filter";
+import { Request, Response } from "express";
+
 
 export const fetchRepos = async (lang: string, minStars: number = 100) => {
   try {
-    const response = await safeGithubQuery({
-      lang,
-      minStars,
-    });
-    const mappedRepos = await mapGithubRepoToProject(response, lang);
-    const filteredRepos = filterGithubRepos(mappedRepos);
+    const response = await safeGithubQuery({ lang, minStars });
 
-    if (filteredRepos.length > 0) {
+    const mapped = await mapGithubRepoToProject(response, lang);
+    const filtered = filterGithubRepos(mapped);
+
+    filtered.forEach((r) => {
+      if (JSON.stringify(r).includes('"$')) {
+        console.log("⚠ Repo contains forbidden $ key:", r.repo_name);
+      } else {
+        console.log(r.repo_name, "is Good to go");
+      }
+    });
+
+    if (filtered.length > 0) {
       await Project.bulkWrite(
-        filteredRepos.map((repo: any) => ({
+        filtered.map((repo: any) => ({
           updateOne: {
             filter: { repoId: repo.repoId },
-            update: {
-              $set: repo,
-            },
+            update: { $set: repo },
             upsert: true,
           },
-        }))
+        })),
+        { ordered: false }
       );
     }
 
-    return filteredRepos;
-  } catch (error: any) {
-    console.error("GitHub GraphQL fetch failed:", error);
-    throw error;
+    return filtered;
+  } catch (err) {
+    console.error("GitHub fetch failed:", err);
+    throw err;
   }
 };
 
 export const getReposFromDb = async (req: Request, res: Response) => {
   try {
-    const { lang, limit = 20, page = 1, topic, level, category } = req.query;
+    const { lang, topic, category, limit = 20, page = 1 } = req.query;
 
-    const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 50));
-    const safePage = Math.max(1, Number(page) || 1);
+    const safeLimit = Math.min(Math.max(parseInt(String(limit)) || 20, 1), 50);
+    const safePage = Math.max(parseInt(String(page)) || 1, 1);
 
-    const allowedLevels = ["beginner", "intermediate", "advanced"];
-    const selectedLevelRaw =
-      typeof level === "string" ? level.toLowerCase() : null;
-    const selectedLevel =
-      selectedLevelRaw && allowedLevels.includes(selectedLevelRaw)
-        ? selectedLevelRaw
-        : null;
-
-    // Build filter
     const filter: any = {};
 
-    if (lang) {
-      filter.language = { $regex: new RegExp(`^${lang}$`, "i") };
-    }
+    if (lang) filter.language = { $regex: new RegExp(`^${lang}$`, "i") };
 
-    if (topic) {
-      filter.topics = { $regex: new RegExp(topic as string, "i") };
-    }
+    if (topic) filter.topics = { $regex: new RegExp(String(topic), "i") };
 
-    if (category) {
-      filter.$or = [
-        { ai_categories: { $regex: new RegExp(category as string, "i") } },
-        { topics: { $regex: new RegExp(category as string, "i") } },
-      ];
-    }
+    if (category)
+      filter.ai_categories = { $regex: new RegExp(String(category), "i") };
 
     const skip = (safePage - 1) * safeLimit;
 
-    // Fetch repos
     const repos = await Project.find(filter)
       .skip(skip)
       .limit(safeLimit)
       .lean()
       .exec();
 
-    if (!repos || repos.length === 0) {
-      return res.json({
-        count: 0,
-        page: safePage,
-        limit: safeLimit,
-        data: [],
-      });
-    }
-
-    // Compute level-specific scores
-    const scored = repos.map((repo: any) => {
-      let levelScore = 0;
-
-      if (!selectedLevel) {
-        // No level filter: use overall quality
-        levelScore =
-          repo.accessibility * 0.4 +
-          repo.maintenance * 0.3 +
-          repo.friendliness * 0.3;
-      } else if (selectedLevel === "beginner") {
-        // Beginner: High friendliness + Low complexity + Good accessibility
-        levelScore =
-          repo.friendliness * 0.5 +
-          (1 - repo.complexity) * 0.3 +
-          repo.accessibility * 0.2;
-      } else if (selectedLevel === "intermediate") {
-        // Intermediate: Balanced
-        levelScore =
-          repo.maintenance * 0.4 +
-          repo.accessibility * 0.3 +
-          repo.friendliness * 0.15 +
-          repo.complexity * 0.15;
-      } else if (selectedLevel === "advanced") {
-        // Advanced: High complexity + Good maintenance
-        levelScore =
-          repo.complexity * 0.5 +
-          repo.maintenance * 0.4 +
-          repo.accessibility * 0.1;
-      }
-
-      // Determine display level
-      let displayLevel = "intermediate";
-      if (repo.friendliness >= 0.65 && repo.complexity <= 0.35) {
-        displayLevel = "beginner";
-      } else if (repo.complexity >= 0.65 || repo.friendliness <= 0.3) {
-        displayLevel = "advanced";
-      }
-
-      return {
-        ...repo,
-        level_score: levelScore,
-        difficulty_level: displayLevel,
-      };
-    });
-
-    // Sort by level_score descending
-    scored.sort((a, b) => b.level_score - a.level_score);
-
     return res.json({
-      count: scored.length,
       page: safePage,
       limit: safeLimit,
-      data: scored,
+      count: repos.length,
+      data: repos,
     });
-  } catch (error) {
-    console.error("Error fetching repos from DB:", error);
+  } catch (err: any) {
+    console.error("DB fetch failed:", err);
     return res.status(500).json({
       message: "Failed to fetch repos",
-      error: error instanceof Error ? error.message : String(error),
+      error: err?.message || String(err),
     });
   }
 };
@@ -158,23 +87,12 @@ export const getRepoById = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Repo not found" });
     }
 
-    // Add difficulty level to response
-    let displayLevel = "intermediate";
-    if (repo.beginner_friendliness >= 0.65 && repo.technical_complexity <= 0.35) {
-      displayLevel = "beginner";
-    } else if (repo.technical_complexity >= 0.65 || repo.beginner_friendliness <= 0.3) {
-      displayLevel = "advanced";
-    }
-
-    return res.json({
-      ...repo,
-      difficulty_level: displayLevel,
-    });
-  } catch (err) {
-    console.error("Error fetching repo by ID:", err);
+    return res.json(repo);
+  } catch (err: any) {
+    console.error("Fetch-by-ID failed:", err);
     return res.status(500).json({
       message: "Failed to fetch repo",
-      error: err instanceof Error ? err.message : String(err),
+      error: err?.message || String(err),
     });
   }
 };

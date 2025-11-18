@@ -138,4 +138,8 @@ export interface IProject extends Document {
   summarizedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+
+  summarization_attempts?: number;
+  last_summarization_error?: string;
+  last_summarization_attempt?: Date;
 }
