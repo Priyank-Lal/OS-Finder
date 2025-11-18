@@ -35,6 +35,68 @@ const projectSchema: Schema = new Schema(
       type: String,
       required: true,
     },
+    languages_breakdown: {
+      type: [
+        {
+          name: String,
+          size: Number,
+        },
+      ],
+      default: [],
+    },
+    file_tree: {
+      type: [String],
+    },
+    file_tree_metrics: {
+      totalFiles: {
+        type: Number,
+        default: 0,
+      },
+      totalDirectories: {
+        type: Number,
+        default: 0,
+      },
+      maxDepth: {
+        type: Number,
+        default: 0,
+      },
+      avgDepth: {
+        type: Number,
+        default: 0,
+      },
+      hasTests: {
+        type: Boolean,
+        default: false,
+      },
+      hasDocs: {
+        type: Boolean,
+        default: false,
+      },
+      hasCI: {
+        type: Boolean,
+        default: false,
+      },
+      hasMonorepo: {
+        type: Boolean,
+        default: false,
+      },
+      configFiles: [String],
+      lockFiles: [String],
+      buildComplexity: {
+        type: Number,
+        default: 0,
+      },
+      testToCodeRatio: {
+        type: Number,
+        default: 0,
+      },
+    },
+    community_health: {
+      has_code_of_conduct: { type: Boolean },
+      has_contributing: { type: Boolean },
+      has_issue_templates: { type: Boolean },
+      has_readme: { type: Boolean },
+    },
 
     // ========== METADATA ==========
     stars: {
@@ -86,6 +148,10 @@ const projectSchema: Schema = new Schema(
     activity: {
       avg_pr_merge_hours: { type: Number, default: null },
       pr_merge_ratio: { type: Number, min: 0, max: 1, default: 0 },
+      avg_issue_response_hours: { type: Number, default: null },
+      issue_response_rate: { type: Number, default: 0 },
+      maintainer_activity_score: { type: Number, default: 0 },
+      total_commits: { type: Number, default: 0 },
     },
     last_commit: {
       type: Date,
@@ -203,6 +269,8 @@ const projectSchema: Schema = new Schema(
         {
           title: String,
           labels: [String],
+          created_at: String,
+          has_response: Boolean,
         },
       ],
       default: [],
@@ -237,4 +305,4 @@ projectSchema.index({ recommended_level: 1 });
 
 projectSchema.index({ overall_score: -1 });
 
-export const Project = mongoose.model<IProject>("Projects", projectSchema);
+export const Project = mongoose.model<IProject>("projects", projectSchema);

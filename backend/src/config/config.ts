@@ -53,7 +53,7 @@ export const _config = {
   ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS || "http://localhost:3000",
 
   // Feature flags
-  ENABLE_AI_ANALYSIS: process.env.ENABLE_AI_ANALYSIS,
+  ENABLE_AI_ANALYSIS: process.env.ENABLE_AI_ANALYSIS || true,
   ENABLE_RATE_LIMITING: process.env.ENABLE_RATE_LIMITING !== "false",
   LOG_LEVEL: process.env.LOG_LEVEL || "info",
 };

@@ -8,13 +8,13 @@ export function computeContributionReadiness(repo: IProject): {
 } {
   // 1. Issue Quality Score (0-100)
   const issueData = repo.issue_data || {};
-  const totalIssues = issueData.total_open_issues || 0;
+  const totalIssues = issueData.total_open || 0;
   const labeledIssues =
-    (issueData.good_first_issue_count || 0) +
-    (issueData.help_wanted_count || 0) +
-    (issueData.bug_count || 0) +
-    (issueData.enhancement_count || 0) +
-    (issueData.documentation_count || 0);
+    (issueData.good_first_issue || 0) +
+    (issueData.help_wanted || 0) +
+    (issueData.bug || 0) +
+    (issueData.enhancement || 0) +
+    (issueData.documentation || 0);
 
   let issueQualityScore = 0;
 
@@ -25,11 +25,11 @@ export function computeContributionReadiness(repo: IProject): {
 
     // Bonus for having diverse issue types
     const issueTypes = [
-      issueData.bug_count,
-      issueData.enhancement_count,
-      issueData.documentation_count,
-      issueData.good_first_issue_count,
-      issueData.help_wanted_count,
+      issueData.bug,
+      issueData.enhancement,
+      issueData.documentation,
+      issueData.good_first_issue,
+      issueData.help_wanted,
     ].filter((count) => (count || 0) > 0).length;
 
     issueQualityScore += (issueTypes / 5) * 30;

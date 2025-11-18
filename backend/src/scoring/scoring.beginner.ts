@@ -23,10 +23,10 @@ export function computeBeginnerFriendliness(
 
   // 2. Issue Labels Score (0-100)
   const issueData = repo.issue_data || {};
-  const gfi = issueData.good_first_issue_count || 0;
-  const helpWanted = issueData.help_wanted_count || 0;
-  const beginner = issueData.beginner_count || 0;
-  const doc = issueData.documentation_count || 0;
+  const gfi = issueData.good_first_issue || 0;
+  const helpWanted = issueData.help_wanted || 0;
+  const beginner = issueData.beginner || 0;
+  const doc = issueData.documentation || 0;
 
   // More nuanced scoring based on issue availability
   let issueLabelsScore = 0;

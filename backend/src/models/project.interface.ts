@@ -6,13 +6,13 @@ export interface LicenseInfo {
 }
 
 export interface IssueData {
-  total_open_issues: number;
-  good_first_issue_count: number;
-  help_wanted_count: number;
-  beginner_count: number;
-  bug_count: number;
-  enhancement_count: number;
-  documentation_count: number;
+  total_open: number;
+  good_first_issue: number;
+  help_wanted: number;
+  beginner: number;
+  bug: number;
+  enhancement: number;
+  documentation: number;
 }
 
 export interface ActivityData {
