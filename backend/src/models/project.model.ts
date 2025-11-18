@@ -1,184 +1,95 @@
 import mongoose, { Schema } from "mongoose";
 import { IProject } from "./project.interface";
 
-const projectSchema: Schema = new Schema(
+const projectSchema = new Schema(
   {
     // ========== CORE INFO ==========
-    repoId: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    repo_name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+    repoId: { type: String, required: true, unique: true },
+    repo_name: { type: String, required: true, trim: true },
     repo_url: {
       type: String,
       required: true,
       validate: {
         validator: (v: string) => /^https?:\/\/.+/.test(v),
-        message: "Invalid repository URL format",
+        message: "Invalid repository URL",
       },
     },
-    owner: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    description: {
-      type: String,
-      default: "",
-    },
-    language: {
-      type: String,
-      required: true,
-    },
+    owner: { type: String, required: true, trim: true },
+    description: { type: String, default: "" },
+    language: { type: String, required: true },
+
+    // ========== LANGUAGE BREAKDOWN ==========
     languages_breakdown: {
-      type: [
-        {
-          name: String,
-          size: Number,
-        },
-      ],
+      type: [{ name: String, size: Number }],
       default: [],
     },
-    file_tree: {
-      type: [String],
-    }, // not necessary in db
+
+    // ========== FILE TREE METRICS (KEEP) ==========
     file_tree_metrics: {
-      totalFiles: {
-        type: Number,
-        default: 0,
-      },
-      totalDirectories: {
-        type: Number,
-        default: 0,
-      },
-      maxDepth: {
-        type: Number,
-        default: 0,
-      },
-      avgDepth: {
-        type: Number,
-        default: 0,
-      },
-      hasTests: {
-        type: Boolean,
-        default: false,
-      },
-      hasDocs: {
-        type: Boolean,
-        default: false,
-      },
-      hasCI: {
-        type: Boolean,
-        default: false,
-      },
-      hasMonorepo: {
-        type: Boolean,
-        default: false,
-      },
+      totalFiles: { type: Number, default: 0 },
+      totalDirectories: { type: Number, default: 0 },
+      maxDepth: { type: Number, default: 0 },
+      avgDepth: { type: Number, default: 0 },
+      hasTests: { type: Boolean, default: false },
+      hasDocs: { type: Boolean, default: false },
+      hasCI: { type: Boolean, default: false },
+      hasMonorepo: { type: Boolean, default: false },
       configFiles: [String],
       lockFiles: [String],
-      buildComplexity: {
-        type: Number,
-        default: 0,
-      },
-      testToCodeRatio: {
-        type: Number,
-        default: 0,
-      },
-    }, // not necessary in db
+      buildComplexity: { type: Number, default: 0 },
+      testToCodeRatio: { type: Number, default: 0 },
+    },
+
+    // ========== COMMUNITY HEALTH ==========
     community_health: {
-      has_code_of_conduct: { type: Boolean },
-      has_contributing: { type: Boolean },
-      has_issue_templates: { type: Boolean },
-      has_readme: { type: Boolean },
-    }, // not necessary in db
+      has_code_of_conduct: Boolean,
+      has_contributing: Boolean,
+      has_issue_templates: Boolean,
+      has_readme: Boolean,
+    },
 
     // ========== METADATA ==========
-    stars: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    forkCount: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    contributors: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    isArchived: {
-      type: Boolean,
-      default: false,
-    },
+    stars: { type: Number, default: 0, min: 0 },
+    forkCount: { type: Number, default: 0, min: 0 },
+    contributors: { type: Number, default: 0, min: 0 },
+    isArchived: { type: Boolean, default: false },
     licenseInfo: {
       name: String,
       key: String,
     },
-    topics: {
-      type: [String],
-      default: [],
-    },
-    has_contributing: {
-      type: Boolean,
+    topics: { type: [String], default: [] },
+
+    // ========== ACTIVITY & ISSUES ==========
+    open_prs: { type: Number, default: 0, min: 0 },
+
+    issue_data: {
+      total_open: { type: Number, default: 0 },
+      good_first_issue: { type: Number, default: 0 },
+      help_wanted: { type: Number, default: 0 },
+      beginner: { type: Number, default: 0 },
+      bug: { type: Number, default: 0 },
+      enhancement: { type: Number, default: 0 },
+      documentation: { type: Number, default: 0 },
     },
 
-    // ========== ACTIVITY ==========
-    open_prs: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    issue_data: {
-      total_open: { type: Number, default: 0, min: 0 },
-      good_first_issue: { type: Number, default: 0, min: 0 },
-      help_wanted: { type: Number, default: 0, min: 0 },
-      beginner: { type: Number, default: 0, min: 0 },
-      bug: { type: Number, default: 0, min: 0 },
-      enhancement: { type: Number, default: 0, min: 0 },
-      documentation: { type: Number, default: 0, min: 0 },
-    },
     activity: {
       avg_pr_merge_hours: { type: Number, default: null },
-      pr_merge_ratio: { type: Number, min: 0, max: 1, default: 0 },
+      pr_merge_ratio: { type: Number, default: 0 },
       avg_issue_response_hours: { type: Number, default: null },
       issue_response_rate: { type: Number, default: 0 },
       maintainer_activity_score: { type: Number, default: 0 },
       total_commits: { type: Number, default: 0 },
     },
-    last_commit: {
-      type: Date,
-      default: null,
-    },
-    last_updated: {
-      type: Date,
-      required: true,
-    },
+
+    last_commit: { type: Date, default: null },
+    last_updated: { type: Date, required: true },
 
     // ========== AI ANALYSIS ==========
-    summary: {
-      type: String,
-      default: "",
-    },
-    tech_stack: {
-      type: [String],
-      default: [],
-    },
-    required_skills: {
-      type: [String],
-      default: [],
-    },
-    categories: {
-      type: [String],
-      default: [],
-    },
+    summary: { type: String, default: "" },
+    tech_stack: { type: [String], default: [] },
+    required_skills: { type: [String], default: [] },
+    categories: { type: [String], default: [] },
+
     main_contrib_areas: {
       type: [
         {
@@ -190,46 +101,20 @@ const projectSchema: Schema = new Schema(
       default: [],
     },
 
-    // ========== SCORING (0-100) ==========
-    beginner_friendliness: {
-      type: Number,
-      min: 0,
-      max: 100,
-      default: 0,
-    },
-    technical_complexity: {
-      type: Number,
-      min: 0,
-      max: 100,
-      default: 0,
-    },
-    contribution_readiness: {
-      type: Number,
-      min: 0,
-      max: 100,
-      default: 0,
-    },
-    overall_score: {
-      type: Number,
-      min: 0,
-      max: 100,
-      default: 0,
-    },
+    // ========== SCORING ==========
+    beginner_friendliness: { type: Number, min: 0, max: 100, default: 0 },
+    technical_complexity: { type: Number, min: 0, max: 100, default: 0 },
+    contribution_readiness: { type: Number, min: 0, max: 100, default: 0 },
+    overall_score: { type: Number, min: 0, max: 100, default: 0 },
+
     recommended_level: {
       type: String,
       enum: ["beginner", "intermediate", "advanced"],
       default: "intermediate",
     },
-    scoring_confidence: {
-      type: Number,
-      min: 0,
-      max: 1,
-      default: 0,
-    },
-    score_breakdown: {
-      type: Object,
-      default: {},
-    },
+
+    scoring_confidence: { type: Number, min: 0, max: 1, default: 0 },
+    score_breakdown: { type: Object, default: {} },
 
     // ========== TASKS ==========
     beginner_tasks: {
@@ -237,10 +122,7 @@ const projectSchema: Schema = new Schema(
         {
           title: String,
           why: String,
-          approx_effort: {
-            type: String,
-            enum: ["low", "medium", "high"],
-          },
+          approx_effort: { type: String, enum: ["low", "medium", "high"] },
           example_issue_title: String,
         },
       ],
@@ -251,19 +133,14 @@ const projectSchema: Schema = new Schema(
         {
           title: String,
           why: String,
-          approx_effort: {
-            type: String,
-            enum: ["low", "medium", "high"],
-          },
+          approx_effort: { type: String, enum: ["low", "medium", "high"] },
           example_issue_title: String,
         },
       ],
       default: [],
     },
 
-    // ========== RAW DATA ==========
-    readme_raw: String, // not necessary in db
-    contributing_raw: String, // not necessary in db
+    // ========== RAW DATA STORED FOR REPROCESSING ==========
     issue_samples: {
       type: [
         {
@@ -274,35 +151,23 @@ const projectSchema: Schema = new Schema(
         },
       ],
       default: [],
-    }, // not necessary in db?
-
-    // ========== TIMESTAMPS ==========
-    summarizedAt: {
-      type: Date,
     },
 
-    summarization_attempts: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    last_summarization_error: {
-      type: String,
-    },
-    last_summarization_attempt: {
-      type: Date,
-    },
+    summarizedAt: Date,
+    summarization_attempts: { type: Number, default: 0 },
+    last_summarization_error: String,
+    last_summarization_attempt: Date,
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt
+    timestamps: true,
     collection: "projects",
   }
 );
 
+// Indexes
 projectSchema.index({ language: 1 });
 projectSchema.index({ categories: 1 });
 projectSchema.index({ recommended_level: 1 });
-
 projectSchema.index({ overall_score: -1 });
 
 export const Project = mongoose.model<IProject>("projects", projectSchema);

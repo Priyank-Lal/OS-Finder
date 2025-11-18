@@ -78,7 +78,6 @@ export interface ScoreBreakdown {
 }
 
 export interface IProject extends Document {
-  // ========== CORE INFO ==========
   repoId: string;
   repo_name: string;
   repo_url: string;
@@ -86,7 +85,6 @@ export interface IProject extends Document {
   description: string;
   language: string;
 
-  // ========== METADATA ==========
   stars: number;
   forkCount: number;
   contributors: number;
@@ -94,52 +92,40 @@ export interface IProject extends Document {
   licenseInfo: LicenseInfo;
   topics: string[];
 
-  // ========== ACTIVITY ==========
   open_prs: number;
   issue_data: IssueData;
   activity: ActivityData;
   last_commit: Date;
   last_updated: Date;
 
-  // ========== FILE STRUCTURE (NEW) ==========
-  file_tree?: string[];
-  file_tree_metrics?: FileTreeMetrics;
   languages_breakdown?: LanguageBreakdown[];
-
-  // ========== COMMUNITY HEALTH (NEW) ==========
+  file_tree_metrics?: FileTreeMetrics;
   community_health?: CommunityHealth;
 
-  // ========== AI ANALYSIS ==========
   summary: string;
   tech_stack: string[];
   required_skills: string[];
   categories: string[];
   main_contrib_areas: ContributionArea[];
 
-  // ========== SCORING (0-100) ==========
   beginner_friendliness: number;
   technical_complexity: number;
   contribution_readiness: number;
   overall_score: number;
   recommended_level: "beginner" | "intermediate" | "advanced";
-  scoring_confidence: number; // 0-1
+  scoring_confidence: number;
   score_breakdown: ScoreBreakdown;
 
-  // ========== TASKS ==========
   beginner_tasks: Task[];
   intermediate_tasks: Task[];
 
-  // ========== RAW DATA (for reprocessing) ==========
-  readme_raw?: string;
-  contributing_raw?: string;
   issue_samples?: IssueSample[];
 
-  // ========== TIMESTAMPS ==========
   summarizedAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-
   summarization_attempts?: number;
   last_summarization_error?: string;
   last_summarization_attempt?: Date;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
