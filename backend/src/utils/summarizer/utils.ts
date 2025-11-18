@@ -8,6 +8,7 @@ import { validateAIResults } from "../../ai/gemini.utils";
 import { _config } from "../../config/config";
 import { Project } from "../../models/project.model";
 import { analyzeCodebaseComplexity } from "../../scoring";
+import { fetchAllCommunityFiles } from "../../services/github.rest";
 import { computeDetailedScores } from "../scoring";
 import { aiQueue } from "./queue";
 
@@ -42,16 +43,26 @@ export async function summarizeRepo(repo: any): Promise<void> {
       throw new Error("Invalid repo URL format");
     }
 
-    const readme = (repo.readme_raw && String(repo.readme_raw).trim()) || null;
-    const contributingMd =
-      (repo.contributing_raw && String(repo.contributing_raw).trim()) || null;
-    const issueSamples = repo.issue_samples || [];
-    const fileTreeMetrics = repo.file_tree_metrics || null;
+      
+    const communityFiles = await fetchAllCommunityFiles(repo.repo_url);
+
+    const {
+      readme,
+      contributing: contributingMd,
+      codeOfConduct,
+      fileTree,
+      fileTreeMetrics,
+      communityHealth,
+    } = communityFiles;
+
 
     if (!readme) {
       console.warn(`Skipping ${repoName}: no README`);
       throw new Error("No README available");
     }
+
+    const issueSamples = repo.issue_samples || [];
+
 
     // build metadata: 
     const metadata = {
@@ -119,8 +130,6 @@ export async function summarizeRepo(repo: any): Promise<void> {
 
     const enrichedRepo = {
       ...repo,
-      readme_raw: readme,
-      contributing_raw: contributingMd,
       tech_stack: phase2.tech_stack || [],
       required_skills: phase2.required_skills || [],
       categories: phase1.repo_categories || [],
@@ -128,8 +137,9 @@ export async function summarizeRepo(repo: any): Promise<void> {
       issue_data: repo.issue_data || {},
       activity: repo.activity || {},
       file_tree_metrics: fileTreeMetrics,
-      community_health: repo.community_health || {},
+      community_health: communityHealth,
     };
+
 
     // Run AI complexity analysis (queued)
     let aiAnalysis;
@@ -197,6 +207,9 @@ export async function summarizeRepo(repo: any): Promise<void> {
       { _id: repo._id },
       {
         $set: {
+          file_tree_metrics: fileTreeMetrics,
+          community_health: communityHealth,
+
           // AI Analysis
           summary: phase1.summary || "",
           categories: phase1.repo_categories || [],
