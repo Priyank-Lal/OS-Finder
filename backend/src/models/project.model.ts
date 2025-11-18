@@ -24,7 +24,7 @@ const projectSchema = new Schema(
       default: [],
     },
 
-    // ========== FILE TREE METRICS (KEEP) ==========
+    // ========== FILE TREE METRICS ==========
     file_tree_metrics: {
       totalFiles: { type: Number, default: 0 },
       totalDirectories: { type: Number, default: 0 },
@@ -47,6 +47,11 @@ const projectSchema = new Schema(
       has_issue_templates: Boolean,
       has_readme: Boolean,
     },
+
+    // ========== RAW DATA (for reprocessing) ==========
+    readme_raw: { type: String, default: "" },
+    contributing_raw: { type: String, default: "" },
+    code_of_conduct_raw: { type: String, default: "" },
 
     // ========== METADATA ==========
     stars: { type: Number, default: 0, min: 0 },
@@ -153,6 +158,7 @@ const projectSchema = new Schema(
       default: [],
     },
 
+    // ========== SUMMARIZATION TRACKING ==========
     summarizedAt: Date,
     summarization_attempts: { type: Number, default: 0 },
     last_summarization_error: String,
@@ -164,7 +170,7 @@ const projectSchema = new Schema(
   }
 );
 
-// Indexes
+// Indexes for efficient querying
 projectSchema.index({ language: 1 });
 projectSchema.index({ categories: 1 });
 projectSchema.index({ recommended_level: 1 });

@@ -10,6 +10,7 @@ import { Project } from "../../models/project.model";
 import { analyzeCodebaseComplexity } from "../../scoring";
 import { fetchAllCommunityFiles } from "../../services/github.rest";
 import { computeDetailedScores } from "../scoring";
+import { analyzeFileTree } from "../fileTreeAnalyzer";
 import { aiQueue } from "./queue";
 
 export async function queuedAICall<T>(
@@ -29,11 +30,18 @@ export async function queuedAICall<T>(
   }) as Promise<T>;
 }
 
+/**
+ * Main function to summarize a repository
+ * - Fetches community files (README, CONTRIBUTING, etc.)
+ * - Analyzes file tree structure
+ * - Generates AI summaries and scores
+ * - Updates database with all results
+ */
 export async function summarizeRepo(repo: any): Promise<void> {
   const repoName = repo.repo_name;
 
   try {
-    // validation 
+    // validation
     const [owner, name] = repo.repo_url
       .replace("https://github.com/", "")
       .split("/");
@@ -43,7 +51,8 @@ export async function summarizeRepo(repo: any): Promise<void> {
       throw new Error("Invalid repo URL format");
     }
 
-      
+    // Fetch community files and file tree
+    console.log(`Fetching community files for ${repoName}...`);
     const communityFiles = await fetchAllCommunityFiles(repo.repo_url);
 
     const {
@@ -51,20 +60,37 @@ export async function summarizeRepo(repo: any): Promise<void> {
       contributing: contributingMd,
       codeOfConduct,
       fileTree,
-      fileTreeMetrics,
-      communityHealth,
+      hasIssueTemplates,
     } = communityFiles;
-
 
     if (!readme) {
       console.warn(`Skipping ${repoName}: no README`);
       throw new Error("No README available");
     }
 
+    // Analyze file tree to get metrics
+    let fileTreeMetrics = null;
+    if (fileTree) {
+      console.log(`Analyzing file tree for ${repoName}...`);
+      fileTreeMetrics = analyzeFileTree(fileTree);
+      console.log(
+        `   File Tree: ${fileTreeMetrics.totalFiles} files, ${fileTreeMetrics.totalDirectories} dirs, depth ${fileTreeMetrics.maxDepth}`
+      );
+    } else {
+      console.warn(`No file tree data available for ${repoName}`);
+    }
+
+    // Build community health object
+    const communityHealth = {
+      has_code_of_conduct: !!codeOfConduct,
+      has_contributing: !!contributingMd,
+      has_issue_templates: hasIssueTemplates,
+      has_readme: !!readme,
+    };
+
     const issueSamples = repo.issue_samples || [];
 
-
-    // build metadata: 
+    // build metadata:
     const metadata = {
       stars: repo.stars || 0,
       forks: repo.forkCount || 0,
@@ -82,7 +108,7 @@ export async function summarizeRepo(repo: any): Promise<void> {
       `   Queue status: ${aiQueue.size} pending, ${aiQueue.pending} running`
     );
 
-    // 1/5: Readme Summary Generation: 
+    // 1/5: Readme Summary Generation:
     console.log(`   Phase 1/5: Generating summary...`);
     const phase1 = await queuedAICall(
       () => generateReadmeSummary(readme, metadata),
@@ -90,7 +116,7 @@ export async function summarizeRepo(repo: any): Promise<void> {
       repoName
     );
 
-    // 2/5: Generate tech stack: 
+    // 2/5: Generate tech stack:
     console.log(`   Phase 2/5: Analyzing tech stack...`);
     const phase2 = await queuedAICall(
       () =>
@@ -130,6 +156,8 @@ export async function summarizeRepo(repo: any): Promise<void> {
 
     const enrichedRepo = {
       ...repo,
+      readme_raw: readme,
+      contributing_raw: contributingMd,
       tech_stack: phase2.tech_stack || [],
       required_skills: phase2.required_skills || [],
       categories: phase1.repo_categories || [],
@@ -139,7 +167,6 @@ export async function summarizeRepo(repo: any): Promise<void> {
       file_tree_metrics: fileTreeMetrics,
       community_health: communityHealth,
     };
-
 
     // Run AI complexity analysis (queued)
     let aiAnalysis;
@@ -207,6 +234,12 @@ export async function summarizeRepo(repo: any): Promise<void> {
       { _id: repo._id },
       {
         $set: {
+          // Raw data storage
+          readme_raw: readme,
+          contributing_raw: contributingMd,
+          code_of_conduct_raw: codeOfConduct,
+
+          // File tree metrics
           file_tree_metrics: fileTreeMetrics,
           community_health: communityHealth,
 
@@ -238,9 +271,9 @@ export async function summarizeRepo(repo: any): Promise<void> {
       }
     );
 
-    console.log(`Successfully summarized ${repoName}`);
+    console.log(`✅ Successfully summarized ${repoName}`);
   } catch (err: any) {
-    console.error(`Error summarizing ${repoName}:`, err.message);
+    console.error(`❌ Error summarizing ${repoName}:`, err.message);
 
     // Update retry counter
     await Project.updateOne(

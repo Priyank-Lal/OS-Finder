@@ -81,7 +81,7 @@ export async function computeDetailedScores(
   
     if (repo.readme_raw && repo.readme_raw.length > 500) confidence += 0.1;
     if (repo.contributing_raw && repo.contributing_raw.length > 0) confidence += 0.1;
-    if ((repo.issue_data?.total_open_issues || 0) > 5) confidence += 0.1;
+    if ((repo.issue_data?.total_open || 0) > 5) confidence += 0.1;
     if (repo.activity?.pr_merge_ratio) confidence += 0.1;
     if (aiAnalysis) confidence += 0.2;
   

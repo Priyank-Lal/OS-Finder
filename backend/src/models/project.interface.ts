@@ -102,6 +102,11 @@ export interface IProject extends Document {
   file_tree_metrics?: FileTreeMetrics;
   community_health?: CommunityHealth;
 
+  // Raw data stored for analysis
+  readme_raw?: string;
+  contributing_raw?: string;
+  code_of_conduct_raw?: string;
+
   summary: string;
   tech_stack: string[];
   required_skills: string[];
