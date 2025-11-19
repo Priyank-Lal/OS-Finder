@@ -102,7 +102,11 @@ export interface IProject extends Document {
   file_tree_metrics?: FileTreeMetrics;
   community_health?: CommunityHealth;
 
-  // Processed AI results only - no raw data
+  // Status
+  status?: "pending" | "active" | "rejected";
+  rejection_reason?: string;
+
+  // AI Analysis results only - no raw data
   summary: string;
   tech_stack: string[];
   required_skills: string[];

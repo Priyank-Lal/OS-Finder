@@ -27,6 +27,7 @@ export async function processSummaries(): Promise<void> {
         { summary: null },
         { file_tree_metrics: { $exists: false } },
       ],
+      status: { $ne: "rejected" },
     })
       .select(
         "_id repo_url repo_name stars forkCount contributors topics language " +

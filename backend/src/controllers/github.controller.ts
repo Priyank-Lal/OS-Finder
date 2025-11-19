@@ -21,6 +21,11 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
 
       const response = await safeGithubQuery({ lang, minStars, cursor });
       
+      if (!response || !response.search) {
+        console.error("Invalid response structure from GitHub");
+        break;
+      }
+
       const nodes = response.search.nodes || [];
       const pageInfo = response.search.pageInfo;
 
@@ -85,6 +90,9 @@ export const getReposFromDb = async (req: Request, res: Response) => {
 
     if (category)
       filter.ai_categories = { $regex: new RegExp(String(category), "i") };
+
+    // Exclude rejected repos
+    filter.status = { $ne: "rejected" };
 
     const skip = (safePage - 1) * safeLimit;
 

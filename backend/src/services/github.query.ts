@@ -249,15 +249,20 @@ export async function safeGithubQuery(
   const searchQuery = `language:${metadata?.lang} stars:>${metadata?.minStars} fork:false archived:false pushed:>=${dateString}`;
   const variables = {
     search: searchQuery,
-    count: 10,
+    count: 4,
     cursor: metadata?.cursor || null,
   };
 
   try {
-    return await gh(query, variables);
+    const response = await gh(query, variables) as any;
+    if (!response || !response.search) {
+      throw new Error("Invalid response from GitHub API");
+    }
+    return response;
   } catch (err: any) {
     if (retries <= 0) throw err;
-    await new Promise((res) => setTimeout(res, 1000));
+    console.warn(`GitHub query failed, retrying (${retries} left):`, err.message);
+    await new Promise((res) => setTimeout(res, 2000)); // Increased delay
     return safeGithubQuery(metadata, retries - 1);
   }
 }

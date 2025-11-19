@@ -76,7 +76,6 @@ export function scoreWithRules(
   if (context.fileTreeMetrics) confidence += 0.15;
   if ((repo.issue_data?.total_open || 0) > 5) confidence += 0.1;
   if (repo.activity?.pr_merge_ratio) confidence += 0.15;
-
   return {
     beginner_friendliness: beginnerFriendliness,
     technical_complexity: technicalComplexity,

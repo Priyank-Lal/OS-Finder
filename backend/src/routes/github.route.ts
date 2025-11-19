@@ -15,8 +15,6 @@ router.get("/fetch", async (req: Request, res: Response) => {
   const stars = parseInt(minStars as string) || 100;
   const data = await fetchRepos(language, stars);
 
-  console.log(data);
-
   return res.json({
     message: "Check DB",
     length: data.length

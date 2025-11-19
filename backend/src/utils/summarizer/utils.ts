@@ -4,6 +4,7 @@
 import {
   generateContributionAreas,
   generateReadmeSummary,
+  generateSuitabilityEvaluation,
   generateTaskSuggestions,
   generateTechAndSkills,
 } from "../../ai";
@@ -71,6 +72,58 @@ export async function summarizeRepo(repo: any): Promise<void> {
       has_issue_templates: hasIssueTemplates,
       has_readme: !!readme,
     };
+
+    // ========== STEP 2.5: AI SUITABILITY CHECK ==========
+    console.log(`Evaluating suitability for ${repoName}...`);
+    const suitability = await queuedAICall(
+      () =>
+        generateSuitabilityEvaluation({
+          readme,
+          description: repo.description || "",
+          topics: repo.topics || [],
+          fileTreeSummary: fileTreeMetrics
+            ? `Files: ${fileTreeMetrics.totalFiles}, Depth: ${fileTreeMetrics.maxDepth}, Configs: ${fileTreeMetrics.configFiles.join(", ")}`
+            : undefined,
+        }),
+      "Suitability Check",
+      repoName
+    );
+
+    if (!suitability.isSuitable) {
+      console.log(`🚫 Rejected ${repoName}: ${suitability.reason}`);
+      await Project.updateOne(
+        { _id: repo._id },
+        {
+          $set: {
+            status: "rejected",
+            rejection_reason: suitability.reason,
+            summarizedAt: new Date(), // Mark as processed so we don't retry
+            summarization_attempts: 0,
+          },
+          $unset: {
+            // Remove heavy fields to save space
+            stars: "",
+            forkCount: "",
+            contributors: "",
+            topics: "",
+            description: "",
+            issue_data: "",
+            activity: "",
+            last_commit: "",
+            file_tree_metrics: "",
+            community_health: "",
+            languages_breakdown: "",
+            issue_samples: "",
+            readme_raw: "",
+            contributing_raw: "",
+            code_of_conduct_raw: "",
+            open_prs: "",
+            licenseInfo: "",
+          },
+        }
+      );
+      return; // Stop processing
+    }
 
     // ========== STEP 3: AI METADATA GENERATION ==========
     console.log(`Generating metadata for ${repoName}...`);
@@ -184,6 +237,7 @@ export async function summarizeRepo(repo: any): Promise<void> {
       {
         $set: {
           // Structure metrics
+          status: "active",
           file_tree_metrics: fileTreeMetrics,
           community_health: communityHealth,
 

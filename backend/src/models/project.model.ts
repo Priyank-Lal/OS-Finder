@@ -21,6 +21,15 @@ const projectSchema = new Schema(
     description: { type: String, default: "" },
     language: { type: String, required: true },
 
+    // Status
+    status: {
+      type: String,
+      enum: ["pending", "active", "rejected"],
+      default: "pending",
+      index: true,
+    },
+    rejection_reason: { type: String },
+
     // ========== METADATA ==========
     stars: { type: Number, default: 0, min: 0 },
     forkCount: { type: Number, default: 0, min: 0 },

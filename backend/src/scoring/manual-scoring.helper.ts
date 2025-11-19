@@ -149,7 +149,7 @@ export function calculateIssueQualityScore(repo: IProject): number {
     (issueData.bug || 0) +
     (issueData.enhancement || 0);
 
-  if (total === 0) return 20;
+  if (total === 0) return 40; // Increased base score for empty issues
 
   const labelRatio = labeled / total;
   let score = labelRatio * 60;
@@ -160,7 +160,7 @@ export function calculateIssueQualityScore(repo: IProject): number {
   else if (total > 100) score += 10;
   else score += 5;
 
-  return clamp(Math.round(score), 0, 100);
+  return clamp(Math.round(score) + 20, 0, 100); // Boost score
 }
 
 export function calculatePRActivityScore(repo: IProject): number {
@@ -182,5 +182,6 @@ export function calculateEngagementScore(repo: IProject): number {
   const activity = (repo as any).activity || {};
   const maintainerActivity = activity.maintainer_activity_score || 0;
 
-  return Math.round(maintainerActivity * 100);
+  // Boost engagement score since we don't have full data yet
+  return Math.min(Math.round(maintainerActivity * 100) + 20, 100);
 }
