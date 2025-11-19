@@ -1,6 +1,6 @@
 import { IProject } from "../models/project.interface";
-import { analyzeCodebaseComplexity, CodebaseComplexityAnalysis } from "../scoring";
-import { computeBeginnerFriendliness,  } from "../scoring/scoring.beginner";
+import { CodebaseComplexityAnalysis } from "../scoring";
+import { computeBeginnerFriendliness } from "../scoring/scoring.beginner";
 import { computeTechnicalComplexity } from "../scoring/scoring.complexity";
 import { computeContributionReadiness } from "../scoring/scoring.contribution";
 
@@ -22,24 +22,22 @@ export async function computeDetailedScores(
   repo: IProject,
   options?: {
     aiAnalysis?: CodebaseComplexityAnalysis;
-    includeAIAnalysis?: boolean;
+    includeAIAnalysis?: boolean; // This should always be false - AI runs in summarization only
   }
 ): Promise<DetailedScores> {
-  let aiAnalysis = options?.aiAnalysis;
+  // Use pre-computed AI analysis if provided
+  const aiAnalysis = options?.aiAnalysis;
 
-  // Optionally run AI analysis
+  // IMPORTANT: We should NEVER run AI analysis here
+  // This was causing duplicate AI calls - AI should only run during summarization
   if (options?.includeAIAnalysis && !aiAnalysis) {
-    const fileTree = repo.file_tree_metrics || null;
-    aiAnalysis = await analyzeCodebaseComplexity(
-      repo.readme_raw || "",
-      fileTree,
-      repo.language || "unknown",
-      repo.topics || [],
-      repo.contributing_raw
+    console.warn(
+      "computeDetailedScores: includeAIAnalysis=true but this is deprecated. " +
+        "AI analysis should only run during summarization."
     );
   }
 
-  // Compute three main scores
+  // Compute three main scores using pre-computed AI analysis
   const beginnerResult = computeBeginnerFriendliness(repo, aiAnalysis);
   const complexityResult = computeTechnicalComplexity(repo, aiAnalysis);
   const contributionResult = computeContributionReadiness(repo);
@@ -64,9 +62,10 @@ export async function computeDetailedScores(
   let recommendedLevel: string;
 
   if (aiAnalysis?.recommended_experience) {
+    // Use AI-recommended level if available
     recommendedLevel = aiAnalysis.recommended_experience;
   } else {
-    // Fallback logic
+    // Fallback logic based on scores
     if (adjustedFriendliness >= 70 && adjustedComplexity <= 40) {
       recommendedLevel = "beginner";
     } else if (adjustedComplexity >= 70 || adjustedFriendliness <= 30) {
@@ -77,15 +76,21 @@ export async function computeDetailedScores(
   }
 
   // Confidence based on data completeness
-    let confidence = 0.5; // Base confidence
-  
-    if (repo.readme_raw && repo.readme_raw.length > 500) confidence += 0.1;
-    if (repo.contributing_raw && repo.contributing_raw.length > 0) confidence += 0.1;
-    if ((repo.issue_data?.total_open || 0) > 5) confidence += 0.1;
-    if (repo.activity?.pr_merge_ratio) confidence += 0.1;
-    if (aiAnalysis) confidence += 0.2;
-  
-    confidence = Math.min(1, confidence);
+  let confidence = 0.5; // Base confidence
+
+  // Note: We check for temporary fields that might exist during summarization
+  const hasReadme =
+    (repo as any).readme_raw && (repo as any).readme_raw.length > 500;
+  const hasContributing =
+    (repo as any).contributing_raw && (repo as any).contributing_raw.length > 0;
+
+  if (hasReadme) confidence += 0.1;
+  if (hasContributing) confidence += 0.1;
+  if ((repo.issue_data?.total_open || 0) > 5) confidence += 0.1;
+  if (repo.activity?.pr_merge_ratio) confidence += 0.1;
+  if (aiAnalysis) confidence += 0.2;
+
+  confidence = Math.min(1, confidence);
 
   return {
     beginner_friendliness: adjustedFriendliness,
@@ -101,4 +106,3 @@ export async function computeDetailedScores(
     },
   };
 }
-

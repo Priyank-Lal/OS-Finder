@@ -18,16 +18,8 @@ export async function processSummaries(): Promise<void> {
     }
 
     console.log("\n" + "=".repeat(70));
-    // Calculate estimated time
-    const estimatedMinutes = Math.ceil(
-      (BATCH_LIMIT * AI_CALLS_PER_REPO) / TOTAL_SAFE_RPM
-    );
-    console.log(
-      `Estimated time for ${BATCH_LIMIT} repos: ~${estimatedMinutes} minutes`
-    );
-    console.log("=".repeat(70) + "\n");
 
-    // fetch repos needing summarization
+    // Fetch repos needing summarization
     const repos = await Project.find({
       $or: [
         { summary: { $exists: false } },
@@ -39,8 +31,8 @@ export async function processSummaries(): Promise<void> {
       .select(
         "_id repo_url repo_name stars forkCount contributors topics language " +
           "issue_data activity last_commit last_updated beginner_friendliness " +
-          "technical_complexity contribution_readiness readme_raw contributing_raw " +
-          "issue_samples file_tree file_tree_metrics community_health " +
+          "technical_complexity contribution_readiness " +
+          "issue_samples file_tree_metrics community_health " +
           "languages_breakdown summarization_attempts last_summarization_error"
       )
       .sort({ summarization_attempts: 1, stars: -1 }) // Prioritize: new repos, then popular
@@ -73,11 +65,10 @@ export async function processSummaries(): Promise<void> {
       });
     console.log("");
 
-    // process repos summarization
+    // Process repos summarization
     let completed = 0;
     let successful = 0;
     let failed = 0;
-    const startTime = Date.now();
 
     for (const repo of repos) {
       repoQueue.add(async () => {
@@ -93,11 +84,11 @@ export async function processSummaries(): Promise<void> {
       });
     }
 
-    // wait for completion
+    // Wait for completion
     await repoQueue.onIdle();
     await aiQueue.onIdle();
 
-    // final summary
+    // Final summary
     console.log("\n" + "=".repeat(70));
     console.log("SUMMARIZATION COMPLETE");
     console.log("=".repeat(70));

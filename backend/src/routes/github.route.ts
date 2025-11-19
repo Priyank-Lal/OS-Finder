@@ -19,6 +19,7 @@ router.get("/fetch", async (req: Request, res: Response) => {
 
   return res.json({
     message: "Check DB",
+    length: data.length
   });
 });
 

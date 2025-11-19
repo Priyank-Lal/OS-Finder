@@ -24,7 +24,7 @@ const projectSchema = new Schema(
       default: [],
     },
 
-    // ========== FILE TREE METRICS ==========
+    // ========== FILE TREE METRICS (Lightweight) ==========
     file_tree_metrics: {
       totalFiles: { type: Number, default: 0 },
       totalDirectories: { type: Number, default: 0 },
@@ -47,11 +47,6 @@ const projectSchema = new Schema(
       has_issue_templates: Boolean,
       has_readme: Boolean,
     },
-
-    // ========== RAW DATA (for reprocessing) ==========
-    readme_raw: { type: String, default: "" },
-    contributing_raw: { type: String, default: "" },
-    code_of_conduct_raw: { type: String, default: "" },
 
     // ========== METADATA ==========
     stars: { type: Number, default: 0, min: 0 },
@@ -89,7 +84,7 @@ const projectSchema = new Schema(
     last_commit: { type: Date, default: null },
     last_updated: { type: Date, required: true },
 
-    // ========== AI ANALYSIS ==========
+    // ========== AI ANALYSIS (Processed results only) ==========
     summary: { type: String, default: "" },
     tech_stack: { type: [String], default: [] },
     required_skills: { type: [String], default: [] },
@@ -145,7 +140,7 @@ const projectSchema = new Schema(
       default: [],
     },
 
-    // ========== RAW DATA STORED FOR REPROCESSING ==========
+    // ========== LIGHTWEIGHT DATA FOR REPROCESSING ==========
     issue_samples: {
       type: [
         {
@@ -175,5 +170,6 @@ projectSchema.index({ language: 1 });
 projectSchema.index({ categories: 1 });
 projectSchema.index({ recommended_level: 1 });
 projectSchema.index({ overall_score: -1 });
+projectSchema.index({ stars: -1 });
 
 export const Project = mongoose.model<IProject>("projects", projectSchema);

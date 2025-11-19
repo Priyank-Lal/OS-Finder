@@ -34,8 +34,9 @@ export async function queuedAICall<T>(
  * Main function to summarize a repository
  * - Fetches community files (README, CONTRIBUTING, etc.)
  * - Analyzes file tree structure
- * - Generates AI summaries and scores
- * - Updates database with all results
+ * - Runs AI analysis ONCE for all scoring and summaries
+ * - Cleans up heavy raw data after processing
+ * - Updates database with final results only
  */
 export async function summarizeRepo(repo: any): Promise<void> {
   const repoName = repo.repo_name;
@@ -151,24 +152,8 @@ export async function summarizeRepo(repo: any): Promise<void> {
       throw new Error("AI validation failed");
     }
 
-    // 4/5: Codebase complexity analysis:
-    console.log(`   Phase 4/5: Computing detailed scores...`);
-
-    const enrichedRepo = {
-      ...repo,
-      readme_raw: readme,
-      contributing_raw: contributingMd,
-      tech_stack: phase2.tech_stack || [],
-      required_skills: phase2.required_skills || [],
-      categories: phase1.repo_categories || [],
-      issue_samples: issueSamples,
-      issue_data: repo.issue_data || {},
-      activity: repo.activity || {},
-      file_tree_metrics: fileTreeMetrics,
-      community_health: communityHealth,
-    };
-
-    // Run AI complexity analysis (queued)
+    // 4/5: AI Complexity Analysis (SINGLE RUN):
+    console.log(`   Phase 4/5: Running AI complexity analysis...`);
     let aiAnalysis;
     if (_config.ENABLE_AI_ANALYSIS !== false) {
       try {
@@ -187,6 +172,8 @@ export async function summarizeRepo(repo: any): Promise<void> {
 
         console.log(
           `   AI Analysis: arch=${aiAnalysis.architecture_score.toFixed(1)}, ` +
+            `abstraction=${aiAnalysis.abstraction_level.toFixed(1)}, ` +
+            `domain=${aiAnalysis.domain_difficulty.toFixed(1)}, ` +
             `setup=${aiAnalysis.setup_complexity.toFixed(1)}, ` +
             `level=${aiAnalysis.recommended_experience}`
         );
@@ -196,10 +183,27 @@ export async function summarizeRepo(repo: any): Promise<void> {
       }
     }
 
-    // Compute scores (this is NOT an AI call, just calculation)
+    // Build enriched repo with temporary data for scoring
+    const enrichedRepo = {
+      ...repo,
+      tech_stack: phase2.tech_stack || [],
+      required_skills: phase2.required_skills || [],
+      categories: phase1.repo_categories || [],
+      issue_samples: issueSamples,
+      issue_data: repo.issue_data || {},
+      activity: repo.activity || {},
+      file_tree_metrics: fileTreeMetrics,
+      community_health: communityHealth,
+      // Temporarily add raw data for scoring
+      readme_raw: readme,
+      contributing_raw: contributingMd,
+    };
+
+    // Compute scores using AI analysis (no duplicate AI calls)
+    console.log(`   Computing detailed scores...`);
     const scores = await computeDetailedScores(enrichedRepo as any, {
-      aiAnalysis,
-      includeAIAnalysis: false,
+      aiAnalysis, // Pass the AI analysis we already ran
+      includeAIAnalysis: false, // Don't run AI analysis again
     });
 
     console.log(
@@ -209,7 +213,7 @@ export async function summarizeRepo(repo: any): Promise<void> {
         `Overall=${scores.overall_score} (${scores.recommended_level})`
     );
 
-    // ========== PHASE 5: TASK SUGGESTIONS ==========
+    // 5/5: TASK SUGGESTIONS
     console.log(`   Phase 5/5: Generating task suggestions...`);
     const phase4 = await queuedAICall(
       () =>
@@ -230,20 +234,17 @@ export async function summarizeRepo(repo: any): Promise<void> {
     );
 
     // ========== DATABASE UPDATE ==========
+    // IMPORTANT: We do NOT store raw data (readme, contributing, etc.)
+    // Only store processed metrics and results
     await Project.updateOne(
       { _id: repo._id },
       {
         $set: {
-          // Raw data storage
-          readme_raw: readme,
-          contributing_raw: contributingMd,
-          code_of_conduct_raw: codeOfConduct,
-
-          // File tree metrics
+          // File tree metrics (lightweight)
           file_tree_metrics: fileTreeMetrics,
           community_health: communityHealth,
 
-          // AI Analysis
+          // AI Analysis Results
           summary: phase1.summary || "",
           categories: phase1.repo_categories || [],
           tech_stack: phase2.tech_stack || [],
@@ -267,6 +268,12 @@ export async function summarizeRepo(repo: any): Promise<void> {
 
           // Timestamp
           summarizedAt: new Date(),
+        },
+        // IMPORTANT: Remove heavy raw data fields if they exist
+        $unset: {
+          readme_raw: "",
+          contributing_raw: "",
+          code_of_conduct_raw: "",
         },
       }
     );
