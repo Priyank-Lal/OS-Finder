@@ -11,7 +11,7 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
     let cursor: string | null = null;
     let hasNextPage = true;
     let loopCount = 0;
-    const MAX_LOOPS = 3; // Safety break to prevent infinite loops
+    const MAX_LOOPS = 6; // Increased limit for multi-token fetching
 
     console.log(`Starting fetch for ${lang} (minStars: ${minStars})...`);
 
@@ -64,7 +64,13 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
       }
       
       // Small delay to be nice to API
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 2000));
+
+      // Rate limiting: Pause for 45s every 2 loops to prevent 502s
+      if (loopCount % 2 === 0) {
+        console.log(`\n--- Pausing for 45s to cool down GitHub API (Loop ${loopCount}) ---\n`);
+        await new Promise(r => setTimeout(r, 45000));
+      }
     }
 
     console.log(`Total repos fetched and saved: ${allFiltered.length}`);

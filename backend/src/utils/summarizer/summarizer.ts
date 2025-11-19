@@ -71,7 +71,10 @@ export async function processSummaries(): Promise<void> {
     let successful = 0;
     let failed = 0;
 
+    let scheduledCount = 0;
+
     for (const repo of repos) {
+      scheduledCount++;
       repoQueue.add(async () => {
         try {
           await summarizeRepo(repo);
@@ -86,6 +89,12 @@ export async function processSummaries(): Promise<void> {
       
       // Add delay to prevent overloading the queue
       await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Batch pause logic: Pause for 60s every 5 repos to respect API limits
+      if (scheduledCount % 5 === 0) {
+        console.log(`\n--- Pausing for 60s to cool down API (Processed batch of 5) ---\n`);
+        await new Promise((resolve) => setTimeout(resolve, 60000));
+      }
     }
 
     // Wait for completion

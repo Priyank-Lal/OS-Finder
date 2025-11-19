@@ -44,8 +44,11 @@ export const _config = {
   // Required
   GITHUB_TOKEN: process.env.GITHUB_TOKEN || "",
   GITHUB_TOKEN_2: process.env.GITHUB_TOKEN_2 || "",
+  GITHUB_TOKEN_3: process.env.GITHUB_TOKEN_3 || "",
+
   MONGODB_URI: process.env.MONGODB_URI || "",
   GEMINI_KEYS: process.env.GEMINI_KEYS || "",
+  SCORING_AI_GEMINI_KEY: process.env.SCORING_AI_GEMINI_KEY || "",
 
   // Optional
   NODE_ENV: process.env.NODE_ENV || "development",

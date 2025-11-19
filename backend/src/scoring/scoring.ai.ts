@@ -19,7 +19,7 @@ export async function scoreWithAI(
   }
 ): Promise<UnifiedScoreResult | null> {
   const client = new GoogleGenAI({
-    apiKey: _config.GEMINI_KEYS?.split(",")[0],
+    apiKey: _config.SCORING_AI_GEMINI_KEY,
   });
 
   const repoContext = buildRepoContext(repo, context);

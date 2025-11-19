@@ -47,7 +47,7 @@ export const generateSuitabilityEvaluation = async (data: {
     }
   `;
 
-  const response = await callAI(prompt, { temperature: 0.1 });
+  const response = await callAI(prompt, { temperature: 0.1, });
   
   // Default fallback
   const defaultResult: SuitabilityResult = {

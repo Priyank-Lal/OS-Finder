@@ -158,7 +158,7 @@ const query = `query ($search: String!, $count: Int!, $cursor: String) {
           }
         }
 
-        # KEEP issueSample basics (needed for scoring) — lightweight, no timelineItems
+        # KEEP issueSample basics (needed for scoring) — lightweight
         issueSamples: issues(
           first: 3
           states: OPEN
@@ -188,25 +188,14 @@ const query = `query ($search: String!, $count: Int!, $cursor: String) {
           states: OPEN
         ) { totalCount }
 
-        firstTimers: issues(
-          labels: ["first-timers-only", "first timers only"]
-          states: OPEN
-        ) { totalCount }
-
-        beginnerIssues: issues(
-          labels: ["beginner", "easy"]
-          states: OPEN
-        ) { totalCount }
+        # Removed expensive specific issue counts to prevent 502s
+        # firstTimers, beginnerIssues, refactorIssues, highPriorityIssues removed
 
         bugIssues: issues(labels: ["bug", "Bug"], states: OPEN) { totalCount }
 
         enhancementIssues: issues(labels: ["enhancement"], states: OPEN) { totalCount }
 
         documentationIssues: issues(labels: ["documentation"], states: OPEN) { totalCount }
-
-        refactorIssues: issues(labels: ["refactor"], states: OPEN) { totalCount }
-
-        highPriorityIssues: issues(labels: ["high priority"], states: OPEN) { totalCount }
 
         # Pull request activity — REMOVE comments (heavy)
         openPRs: pullRequests(states: OPEN) {
@@ -215,7 +204,7 @@ const query = `query ($search: String!, $count: Int!, $cursor: String) {
 
         recentPRs: pullRequests(
           states: [OPEN, MERGED, CLOSED]
-          first: 5
+          first: 3
           orderBy: { field: CREATED_AT, direction: DESC }
         ) {
           nodes {
@@ -234,9 +223,23 @@ const query = `query ($search: String!, $count: Int!, $cursor: String) {
   }
 }`;
 
-const gh = graphql.defaults({
-  headers: { authorization: `token ${_config.GITHUB_TOKEN}` },
-});
+const tokens = [
+  _config.GITHUB_TOKEN,
+  _config.GITHUB_TOKEN_3,
+].filter(Boolean);
+
+let tokenIndex = 0;
+
+function getClient() {
+  if (tokens.length === 0) {
+    throw new Error("No GitHub tokens available");
+  }
+  const token = tokens[tokenIndex];
+  tokenIndex = (tokenIndex + 1) % tokens.length;
+  return graphql.defaults({
+    headers: { authorization: `token ${token}` },
+  });
+}
 
 const dateLimit = new Date();
 dateLimit.setDate(dateLimit.getDate() - 60);
@@ -249,12 +252,14 @@ export async function safeGithubQuery(
   const searchQuery = `language:${metadata?.lang} stars:>${metadata?.minStars} fork:false archived:false pushed:>=${dateString}`;
   const variables = {
     search: searchQuery,
-    count: 4,
+    count: 10,
     cursor: metadata?.cursor || null,
   };
 
   try {
-    const response = await gh(query, variables) as any;
+    const client = getClient();
+    const response = await client(query, variables) as any;
+    
     if (!response || !response.search) {
       throw new Error("Invalid response from GitHub API");
     }

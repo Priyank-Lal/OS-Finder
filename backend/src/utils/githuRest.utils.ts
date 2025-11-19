@@ -10,6 +10,11 @@ const octokit2 = new Octokit({
   auth: _config.GITHUB_TOKEN_2,
 });
 
+const octokit3 = new Octokit({
+  auth: _config.GITHUB_TOKEN_3,
+});
+
+
 export async function fetchReadme(
   repoIdentifier: string
 ): Promise<string | null> {
@@ -51,7 +56,7 @@ export async function fetchContributing(
 
       for (const path of paths) {
         try {
-          const response = await octokit1.repos.getContent({
+          const response = await octokit3.repos.getContent({
             owner,
             repo,
             path,
@@ -91,7 +96,7 @@ export async function fetchCodeOfConduct(
 
       for (const path of paths) {
         try {
-          const response = await octokit2.repos.getContent({
+          const response = await octokit3.repos.getContent({
             owner,
             repo,
             path,

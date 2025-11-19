@@ -13,9 +13,7 @@ export async function mapGithubRepoToProject(response: any, lang: string) {
         total_open: repo.issues?.totalCount || 0,
         good_first_issue: repo.goodFirstIssues?.totalCount || 0,
         help_wanted: repo.helpWantedIssues?.totalCount || 0,
-        beginner:
-          (repo.firstTimers?.totalCount || 0) +
-          (repo.beginnerIssues?.totalCount || 0),
+        beginner: 0, // Removed specific beginner labels to optimize query
         bug: repo.bugIssues?.totalCount || 0,
         enhancement: repo.enhancementIssues?.totalCount || 0,
         documentation: repo.documentationIssues?.totalCount || 0,
