@@ -1,215 +1,181 @@
 import { GoogleGenAI } from "@google/genai";
-import { clamp } from "./scoring.utils";
+import { FileTreeMetrics, IProject } from "../models/project.interface";
+
 import { _config } from "../config/config";
-import { FileTreeMetrics } from "../utils/fileTreeAnalyzer";
+import {
+  buildRepoContext,
+  clamp,
+  isValidAIResponse,
+  validateLevel,
+} from "./scoring.utils";
+import { AIScoreResponse, UnifiedScoreResult } from "./scoring.interface";
 
-export interface CodebaseComplexityAnalysis {
-  architecture_score: number; // 0-10: How complex is the architecture
-  abstraction_level: number; // 0-10: Level of abstraction
-  domain_difficulty: number; // 0-10: How hard is the problem domain
-  code_patterns: string[]; // Design patterns used
-  setup_complexity: number; // 0-10: How hard to set up
-  recommended_experience: string; // "beginner" | "intermediate" | "advanced"
-}
+export async function scoreWithAI(
+  repo: IProject,
+  context: {
+    readme: string;
+    contributingMd?: string;
+    fileTreeMetrics?: FileTreeMetrics;
+  }
+): Promise<UnifiedScoreResult | null> {
+  const client = new GoogleGenAI({
+    apiKey: _config.GEMINI_KEYS?.split(",")[0],
+  });
 
-export async function analyzeCodebaseComplexity(
-  readme: string,
-  fileTreeMetrics: FileTreeMetrics | null,
-  language: string,
-  topics: string[],
-  contributingMd?: string
-): Promise<CodebaseComplexityAnalysis> {
-  try {
-    const client = new GoogleGenAI({
-      apiKey: _config.GEMINI_KEYS?.split(",")[0],
-    });
+  const repoContext = buildRepoContext(repo, context);
 
-    // Build structured file tree summary
-    let fileTreeSummary = "No file tree data available.";
+  const prompt = `You are an expert at evaluating open-source repositories for contributor friendliness.
 
-    if (fileTreeMetrics) {
-      fileTreeSummary = `
-FILE TREE METRICS:
-- Total Files: ${fileTreeMetrics.totalFiles}
-- Total Directories: ${fileTreeMetrics.totalDirectories}
-- Maximum Nesting Depth: ${fileTreeMetrics.maxDepth}
-- Average Nesting Depth: ${fileTreeMetrics.avgDepth.toFixed(2)}
-- Has Test Suite: ${fileTreeMetrics.hasTests ? "Yes" : "No"}
-- Has Documentation Folder: ${fileTreeMetrics.hasDocs ? "Yes" : "No"}
-- Has CI/CD: ${fileTreeMetrics.hasCI ? "Yes" : "No"}
-- Is Monorepo: ${fileTreeMetrics.hasMonorepo ? "Yes" : "No"}
-- Test-to-Code Ratio: ${(fileTreeMetrics.testToCodeRatio * 100).toFixed(1)}%
-- Build Complexity (0-10): ${fileTreeMetrics.buildComplexity.toFixed(1)}
-- Config Files: ${fileTreeMetrics.configFiles.join(", ") || "None"}
-- Lock Files: ${fileTreeMetrics.lockFiles.join(", ") || "None"}
-`;
-    }
+Analyze this repository and provide detailed scoring across three dimensions:
 
-    const prompt = `You are a code complexity analyzer. Analyze this repository and respond ONLY with valid JSON.
+1. **Beginner Friendliness (0-100)**: How welcoming is this repo for new contributors?
+   - Documentation quality (README, CONTRIBUTING.md, issue templates)
+   - Availability of labeled issues (good-first-issue, help-wanted)
+   - Community responsiveness (how fast maintainers respond)
+   - Codebase simplicity (easy to understand and navigate)
 
-README (first 5000 chars):
-${readme.slice(0, 5000)}
+2. **Technical Complexity (0-100)**: How technically challenging is this project?
+   - Architecture complexity (file structure, nesting, patterns)
+   - Dependency management (number and complexity of dependencies)
+   - Domain difficulty (how specialized is the problem domain)
 
-${fileTreeSummary}
+3. **Contribution Readiness (0-100)**: How ready is this repo to accept contributions?
+   - Issue quality (well-defined, labeled, organized)
+   - PR activity (merge rate, response time)
+   - Maintainer engagement (active, responsive, helpful)
 
-PRIMARY LANGUAGE: ${language}
-TOPICS: ${JSON.stringify(topics)}
+REPOSITORY DATA:
+${repoContext}
 
-${contributingMd ? `CONTRIBUTING.md:\n${contributingMd.slice(0, 1000)}` : ""}
-
-Analyze and return JSON with this EXACT schema:
+OUTPUT SCHEMA (return ONLY valid JSON):
 {
-  "architecture_score": <0-10, how complex is the architecture>,
-  "abstraction_level": <0-10, how abstract/meta is the code>,
-  "domain_difficulty": <0-10, how hard is the problem domain>,
-  "code_patterns": [<array of design patterns detected>],
-  "setup_complexity": <0-10, setup difficulty>,
-  "recommended_experience": "<beginner|intermediate|advanced>"
+  "beginner_friendliness": <0-100>,
+  "technical_complexity": <0-100>,
+  "contribution_readiness": <0-100>,
+  "recommended_level": "beginner" | "intermediate" | "advanced",
+  "confidence": <0.0-1.0>,
+  "reasoning": {
+    "beginner": {
+      "documentation_score": <0-100>,
+      "issue_labels_score": <0-100>,
+      "community_response_score": <0-100>,
+      "codebase_simplicity_score": <0-100>,
+      "explanation": "<2-3 sentence explanation>"
+    },
+    "complexity": {
+      "architecture_score": <0-100>,
+      "dependencies_score": <0-100>,
+      "domain_difficulty_score": <0-100>,
+      "explanation": "<2-3 sentence explanation>"
+    },
+    "contribution": {
+      "issue_quality_score": <0-100>,
+      "pr_activity_score": <0-100>,
+      "maintainer_engagement_score": <0-100>,
+      "explanation": "<2-3 sentence explanation>"
+    }
+  }
 }
 
 SCORING GUIDELINES:
+- Use the actual metrics provided (file counts, issue counts, response times)
+- Be realistic: most repos are 40-70, not 90+
+- Confidence should reflect data completeness (more data = higher confidence)
+- Recommended level: 
+  * beginner: BF > 70 AND TC < 40
+  * advanced: TC > 70 OR BF < 30
+  * intermediate: everything else`;
 
-architecture_score (0-10):
-- Use the actual file metrics provided above
-- 1-3: Simple (< 50 files, depth ≤ 3, single package)
-- 4-6: Medium (50-200 files, depth 4-5, modular structure)
-- 7-8: Complex (200-500 files, depth 6-7, layered architecture)
-- 9-10: Very Complex (> 500 files, depth > 7, microservices/monorepo)
+  const response = await client.models.generateContent({
+    model: "gemini-2.5-flash-lite",
+    contents: prompt,
+    maxOutputTokens: 1000,
+    temperature: 0.1,
+  } as any);
 
-abstraction_level (0-10):
-- 1-3: Procedural, direct logic
-- 4-6: OOP with classes and interfaces
-- 7-8: Advanced patterns (dependency injection, factories, decorators)
-- 9-10: Meta-programming, reflection, code generation
+  const text = response?.text || "";
+  const cleaned =
+    text
+      .replace(/```json/gi, "")
+      .replace(/```/g, "")
+      .trim()
+      .match(/\{[\s\S]*\}/)?.[0] || "{}";
 
-domain_difficulty (0-10):
-- 1-3: Simple domains (CRUD, static sites, simple utilities)
-- 4-6: Medium domains (web frameworks, API clients, data processing)
-- 7-8: Complex domains (databases, compilers, networking, ML frameworks)
-- 9-10: Expert domains (OS kernels, distributed systems, cryptography)
-
-setup_complexity (0-10):
-- Use build_complexity metric from file tree
-- 1-3: Simple (npm install && npm start, single command)
-- 4-6: Medium (multiple config files, environment setup)
-- 7-8: Complex (Docker, multiple services, database setup)
-- 9-10: Very Complex (Kubernetes, microservices, complex orchestration)
-
-recommended_experience:
-- "beginner": Simple architecture (1-3), low abstraction (1-4), simple domain (1-3), easy setup (1-3)
-- "advanced": Complex architecture (8-10), high abstraction (8-10), hard domain (8-10), complex setup (7-10)
-- "intermediate": Everything else
-
-IMPORTANT: Base your scores primarily on the FILE TREE METRICS provided, not just the README description.`;
-
-    const response = await client.models.generateContent({
-      model: "gemini-2.5-flash-lite",
-      contents: prompt,
-      maxOutputTokens: 500,
-      temperature: 0.0,
-    } as any);
-
-    const text = response?.text || "";
-    const cleaned =
-      text
-        .replace(/```json/gi, "")
-        .replace(/```/g, "")
-        .trim()
-        .match(/\{[\s\S]*\}/)?.[0] || "{}";
-
-    let parsed: any = {};
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch (error) {
-      console.error("Failed to parse AI response:", error);
-      parsed = {};
-    }
-
-    // Validate and provide intelligent defaults based on file metrics
-    let defaultArchScore = 5;
-    let defaultSetupScore = 5;
-    let defaultLevel = "intermediate";
-
-    if (fileTreeMetrics) {
-      // Calculate defaults from actual metrics
-      const files = fileTreeMetrics.totalFiles;
-      const depth = fileTreeMetrics.maxDepth;
-      const buildComplexity = fileTreeMetrics.buildComplexity;
-
-      // Architecture score from file metrics
-      if (files < 50 && depth <= 3) defaultArchScore = 2;
-      else if (files < 200 && depth <= 5) defaultArchScore = 5;
-      else if (files < 500 && depth <= 7) defaultArchScore = 7;
-      else defaultArchScore = 9;
-
-      // Setup score from build complexity
-      defaultSetupScore = Math.min(10, buildComplexity);
-
-      // Recommended level
-      if (files < 100 && depth <= 4 && buildComplexity < 4) {
-        defaultLevel = "beginner";
-      } else if (files > 500 || depth > 7 || buildComplexity > 7) {
-        defaultLevel = "advanced";
-      }
-    }
-
-    return {
-      architecture_score: clamp(
-        parsed.architecture_score ?? defaultArchScore,
-        0,
-        10
-      ),
-      abstraction_level: clamp(parsed.abstraction_level ?? 5, 0, 10),
-      domain_difficulty: clamp(parsed.domain_difficulty ?? 5, 0, 10),
-      code_patterns: Array.isArray(parsed.code_patterns)
-        ? parsed.code_patterns.slice(0, 10)
-        : [],
-      setup_complexity: clamp(
-        parsed.setup_complexity ?? defaultSetupScore,
-        0,
-        10
-      ),
-      recommended_experience: ["beginner", "intermediate", "advanced"].includes(
-        parsed.recommended_experience
-      )
-        ? parsed.recommended_experience
-        : defaultLevel,
-    };
+  let parsed: AIScoreResponse;
+  try {
+    parsed = JSON.parse(cleaned);
   } catch (error) {
-    console.error("AI complexity analysis failed:", error);
-
-    // Return intelligent defaults based on file metrics
-    let defaultArchScore = 5;
-    let defaultSetupScore = 5;
-    let defaultLevel = "intermediate";
-
-    if (fileTreeMetrics) {
-      const files = fileTreeMetrics.totalFiles;
-      const depth = fileTreeMetrics.maxDepth;
-      const buildComplexity = fileTreeMetrics.buildComplexity;
-
-      if (files < 50 && depth <= 3) {
-        defaultArchScore = 2;
-        defaultLevel = "beginner";
-      } else if (files < 200 && depth <= 5) {
-        defaultArchScore = 5;
-      } else if (files < 500 && depth <= 7) {
-        defaultArchScore = 7;
-      } else {
-        defaultArchScore = 9;
-        defaultLevel = "advanced";
-      }
-
-      defaultSetupScore = Math.min(10, buildComplexity);
-    }
-
-    return {
-      architecture_score: defaultArchScore,
-      abstraction_level: 5,
-      domain_difficulty: 5,
-      code_patterns: [],
-      setup_complexity: defaultSetupScore,
-      recommended_experience: defaultLevel,
-    };
+    console.error("Failed to parse AI response:", error);
+    return null;
   }
+
+  // Validate response
+  if (!isValidAIResponse(parsed)) {
+    console.error("Invalid AI response structure");
+    return null;
+  }
+
+  // Calculate overall score
+  const overall =
+    parsed.beginner_friendliness * 0.35 +
+    (100 - parsed.technical_complexity) * 0.25 +
+    parsed.contribution_readiness * 0.4;
+
+  return {
+    beginner_friendliness: clamp(
+      Math.round(parsed.beginner_friendliness),
+      0,
+      100
+    ),
+    technical_complexity: clamp(
+      Math.round(parsed.technical_complexity),
+      0,
+      100
+    ),
+    contribution_readiness: clamp(
+      Math.round(parsed.contribution_readiness),
+      0,
+      100
+    ),
+    overall_score: clamp(Math.round(overall), 0, 100),
+    recommended_level: validateLevel(parsed.recommended_level),
+    confidence: clamp(parsed.confidence, 0, 1),
+    score_breakdown: {
+      beginner: {
+        documentation: Math.round(
+          parsed.reasoning.beginner.documentation_score
+        ),
+        issue_labels: Math.round(parsed.reasoning.beginner.issue_labels_score),
+        community_response: Math.round(
+          parsed.reasoning.beginner.community_response_score
+        ),
+        codebase_simplicity: Math.round(
+          parsed.reasoning.beginner.codebase_simplicity_score
+        ),
+      },
+      complexity: {
+        architecture: Math.round(
+          parsed.reasoning.complexity.architecture_score
+        ),
+        dependencies: Math.round(
+          parsed.reasoning.complexity.dependencies_score
+        ),
+        domain_difficulty: Math.round(
+          parsed.reasoning.complexity.domain_difficulty_score
+        ),
+      },
+      contribution: {
+        issue_quality: Math.round(
+          parsed.reasoning.contribution.issue_quality_score
+        ),
+        pr_activity: Math.round(
+          parsed.reasoning.contribution.pr_activity_score
+        ),
+        maintainer_engagement: Math.round(
+          parsed.reasoning.contribution.maintainer_engagement_score
+        ),
+      },
+    },
+    scoring_method: "ai",
+  };
 }

@@ -1,3 +1,6 @@
+// backend/src/models/updated-project.model.ts
+// Cleaned up project schema for unified scoring system
+
 import mongoose, { Schema } from "mongoose";
 import { IProject } from "./project.interface";
 
@@ -17,6 +20,17 @@ const projectSchema = new Schema(
     owner: { type: String, required: true, trim: true },
     description: { type: String, default: "" },
     language: { type: String, required: true },
+
+    // ========== METADATA ==========
+    stars: { type: Number, default: 0, min: 0 },
+    forkCount: { type: Number, default: 0, min: 0 },
+    contributors: { type: Number, default: 0, min: 0 },
+    isArchived: { type: Boolean, default: false },
+    licenseInfo: {
+      name: String,
+      key: String,
+    },
+    topics: { type: [String], default: [] },
 
     // ========== LANGUAGE BREAKDOWN ==========
     languages_breakdown: {
@@ -48,17 +62,6 @@ const projectSchema = new Schema(
       has_readme: Boolean,
     },
 
-    // ========== METADATA ==========
-    stars: { type: Number, default: 0, min: 0 },
-    forkCount: { type: Number, default: 0, min: 0 },
-    contributors: { type: Number, default: 0, min: 0 },
-    isArchived: { type: Boolean, default: false },
-    licenseInfo: {
-      name: String,
-      key: String,
-    },
-    topics: { type: [String], default: [] },
-
     // ========== ACTIVITY & ISSUES ==========
     open_prs: { type: Number, default: 0, min: 0 },
 
@@ -84,7 +87,7 @@ const projectSchema = new Schema(
     last_commit: { type: Date, default: null },
     last_updated: { type: Date, required: true },
 
-    // ========== AI ANALYSIS (Processed results only) ==========
+    // ========== AI ANALYSIS RESULTS ==========
     summary: { type: String, default: "" },
     tech_stack: { type: [String], default: [] },
     required_skills: { type: [String], default: [] },
@@ -101,11 +104,31 @@ const projectSchema = new Schema(
       default: [],
     },
 
-    // ========== SCORING ==========
-    beginner_friendliness: { type: Number, min: 0, max: 100, default: 0 },
-    technical_complexity: { type: Number, min: 0, max: 100, default: 0 },
-    contribution_readiness: { type: Number, min: 0, max: 100, default: 0 },
-    overall_score: { type: Number, min: 0, max: 100, default: 0 },
+    // ========== UNIFIED SCORING SYSTEM ==========
+    beginner_friendliness: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0,
+    },
+    technical_complexity: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0,
+    },
+    contribution_readiness: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0,
+    },
+    overall_score: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0,
+    },
 
     recommended_level: {
       type: String,
@@ -113,10 +136,41 @@ const projectSchema = new Schema(
       default: "intermediate",
     },
 
-    scoring_confidence: { type: Number, min: 0, max: 1, default: 0 },
-    score_breakdown: { type: Object, default: {} },
+    scoring_confidence: {
+      type: Number,
+      min: 0,
+      max: 1,
+      default: 0,
+    },
 
-    // ========== TASKS ==========
+    // NEW: Track which scoring method was used
+    scoring_method: {
+      type: String,
+      enum: ["ai", "fallback", "legacy", "needs_update"],
+      default: "needs_update",
+    },
+
+    // Simplified score breakdown (consistent structure)
+    score_breakdown: {
+      beginner: {
+        documentation: { type: Number, default: 0 },
+        issue_labels: { type: Number, default: 0 },
+        community_response: { type: Number, default: 0 },
+        codebase_simplicity: { type: Number, default: 0 },
+      },
+      complexity: {
+        architecture: { type: Number, default: 0 },
+        dependencies: { type: Number, default: 0 },
+        domain_difficulty: { type: Number, default: 0 },
+      },
+      contribution: {
+        issue_quality: { type: Number, default: 0 },
+        pr_activity: { type: Number, default: 0 },
+        maintainer_engagement: { type: Number, default: 0 },
+      },
+    },
+
+    // ========== TASK SUGGESTIONS ==========
     beginner_tasks: {
       type: [
         {
@@ -140,7 +194,7 @@ const projectSchema = new Schema(
       default: [],
     },
 
-    // ========== LIGHTWEIGHT DATA FOR REPROCESSING ==========
+    // ========== LIGHTWEIGHT ISSUE SAMPLES ==========
     issue_samples: {
       type: [
         {
@@ -154,7 +208,7 @@ const projectSchema = new Schema(
     },
 
     // ========== SUMMARIZATION TRACKING ==========
-    summarizedAt: Date,
+    summarizedAt: { type: Date },
     summarization_attempts: { type: Number, default: 0 },
     last_summarization_error: String,
     last_summarization_attempt: Date,
@@ -165,11 +219,10 @@ const projectSchema = new Schema(
   }
 );
 
-// Indexes for efficient querying
-projectSchema.index({ language: 1 });
-projectSchema.index({ categories: 1 });
-projectSchema.index({ recommended_level: 1 });
-projectSchema.index({ overall_score: -1 });
-projectSchema.index({ stars: -1 });
+// Optimized indexes for common queries
+projectSchema.index({ language: 1, overall_score: -1 });
+projectSchema.index({ recommended_level: 1, overall_score: -1 });
+projectSchema.index({ categories: 1, overall_score: -1 });
+projectSchema.index({ scoring_method: 1, summarizedAt: 1 });
 
 export const Project = mongoose.model<IProject>("projects", projectSchema);
