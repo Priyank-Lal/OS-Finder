@@ -43,6 +43,7 @@ if (
 export const _config = {
   // Required
   GITHUB_TOKEN: process.env.GITHUB_TOKEN || "",
+  GITHUB_TOKEN_2: process.env.GITHUB_TOKEN_2 || "",
   MONGODB_URI: process.env.MONGODB_URI || "",
   GEMINI_KEYS: process.env.GEMINI_KEYS || "",
 

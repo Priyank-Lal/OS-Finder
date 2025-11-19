@@ -92,6 +92,8 @@ export async function summarizeRepo(repo: any): Promise<void> {
       repoName
     );
 
+    await new Promise(r => setTimeout(r, 1000)); // Delay between phases
+
     // Phase 2: Tech Stack
     const phase2 = await queuedAICall(
       () =>
@@ -103,6 +105,8 @@ export async function summarizeRepo(repo: any): Promise<void> {
       "Tech Stack Analysis",
       repoName
     );
+
+    await new Promise(r => setTimeout(r, 1000)); // Delay between phases
 
     // Phase 3: Contribution Areas
     const phase3 = await queuedAICall(
@@ -136,6 +140,7 @@ export async function summarizeRepo(repo: any): Promise<void> {
       file_tree_metrics: fileTreeMetrics,
       community_health: communityHealth,
     };
+    
 
     // Use unified scoring (AI-first with fallback)
     const scores = await computeUnifiedScore(enrichedRepo as any, {
@@ -150,6 +155,8 @@ export async function summarizeRepo(repo: any): Promise<void> {
         `CR=${scores.contribution_readiness}, ` +
         `Overall=${scores.overall_score} (${scores.recommended_level})`
     );
+
+    await new Promise(r => setTimeout(r, 1000)); // Delay between phases
 
     // ========== STEP 5: TASK SUGGESTIONS ==========
     const phase4 = await queuedAICall(

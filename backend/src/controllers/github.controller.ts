@@ -7,34 +7,63 @@ import { Request, Response } from "express";
 
 export const fetchRepos = async (lang: string, minStars: number = 100) => {
   try {
-    const response = await safeGithubQuery({ lang, minStars });
-    console.log(response.search.nodes.length);
-    
-    const mapped = await mapGithubRepoToProject(response, lang);
-    const filtered = filterGithubRepos(mapped);
+    let allFiltered: any[] = [];
+    let cursor: string | null = null;
+    let hasNextPage = true;
+    let loopCount = 0;
+    const MAX_LOOPS = 3; // Safety break to prevent infinite loops
 
-    filtered.forEach((r) => {
-      if (JSON.stringify(r).includes('"$')) {
-        console.log("⚠ Repo contains forbidden $ key:", r.repo_name);
-      } else {
-        console.log(r.repo_name, "is Good to go");
+    console.log(`Starting fetch for ${lang} (minStars: ${minStars})...`);
+
+    while (hasNextPage && loopCount < MAX_LOOPS && allFiltered.length < 30) {
+      loopCount++;
+      console.log(`--- Fetch Loop ${loopCount} (Cursor: ${cursor}) ---`);
+
+      const response = await safeGithubQuery({ lang, minStars, cursor });
+      
+      const nodes = response.search.nodes || [];
+      const pageInfo = response.search.pageInfo;
+
+      console.log(`Fetched ${nodes.length} raw repos.`);
+
+      if (nodes.length === 0) {
+        break;
       }
-    });
 
-    if (filtered.length > 0) {
-      await Project.bulkWrite(
-        filtered.map((repo: any) => ({
-          updateOne: {
-            filter: { repoId: repo.repoId },
-            update: { $set: repo },
-            upsert: true,
-          },
-        })),
-        { ordered: false }
-      );
+      const mapped = await mapGithubRepoToProject(response, lang);
+      const filtered = filterGithubRepos(mapped);
+
+      console.log(`Kept ${filtered.length} repos from this batch.`);
+
+      // Save current batch
+      if (filtered.length > 0) {
+        await Project.bulkWrite(
+          filtered.map((repo: any) => ({
+            updateOne: {
+              filter: { repoId: repo.repoId },
+              update: { $set: repo },
+              upsert: true,
+            },
+          })),
+          { ordered: false }
+        );
+        allFiltered = [...allFiltered, ...filtered];
+      }
+
+      // Setup next loop
+      hasNextPage = pageInfo.hasNextPage;
+      cursor = pageInfo.endCursor;
+
+      if (!hasNextPage) {
+        console.log("No more pages from GitHub.");
+      }
+      
+      // Small delay to be nice to API
+      await new Promise(r => setTimeout(r, 1000));
     }
 
-    return filtered;
+    console.log(`Total repos fetched and saved: ${allFiltered.length}`);
+    return allFiltered;
   } catch (err) {
     console.error("GitHub fetch failed:", err);
     throw err;

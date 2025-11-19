@@ -2,8 +2,12 @@ import { Octokit } from "@octokit/rest";
 import { parseRepoIdentifier, queuedRestCall } from "./github.helper";
 import { _config } from "../config/config";
 
-const octokit = new Octokit({
+const octokit1 = new Octokit({
   auth: _config.GITHUB_TOKEN,
+});
+
+const octokit2 = new Octokit({
+  auth: _config.GITHUB_TOKEN_2,
 });
 
 export async function fetchReadme(
@@ -15,7 +19,7 @@ export async function fetchReadme(
     "README",
     `${owner}/${repo}`,
     async () => {
-      const response = await octokit.repos.getReadme({
+      const response = await octokit1.repos.getReadme({
         owner,
         repo,
         mediaType: { format: "raw" },
@@ -47,7 +51,7 @@ export async function fetchContributing(
 
       for (const path of paths) {
         try {
-          const response = await octokit.repos.getContent({
+          const response = await octokit1.repos.getContent({
             owner,
             repo,
             path,
@@ -87,7 +91,7 @@ export async function fetchCodeOfConduct(
 
       for (const path of paths) {
         try {
-          const response = await octokit.repos.getContent({
+          const response = await octokit2.repos.getContent({
             owner,
             repo,
             path,
@@ -120,11 +124,11 @@ export async function fetchFileTree(
     `${owner}/${repo}`,
     async () => {
       // Get default branch first
-      const repoData = await octokit.repos.get({ owner, repo });
+      const repoData = await octokit2.repos.get({ owner, repo });
       const defaultBranch = repoData.data.default_branch;
 
       // Get tree SHA for default branch
-      const branchData = await octokit.repos.getBranch({
+      const branchData = await octokit2.repos.getBranch({
         owner,
         repo,
         branch: defaultBranch,
@@ -133,7 +137,7 @@ export async function fetchFileTree(
       const treeSha = branchData.data.commit.sha;
 
       // Fetch recursive tree (GitHub API supports recursive=1)
-      const treeData = await octokit.git.getTree({
+      const treeData = await octokit2.git.getTree({
         owner,
         repo,
         tree_sha: treeSha,
@@ -178,7 +182,7 @@ export async function fetchIssueTemplates(
 
       for (const path of paths) {
         try {
-          const response = await octokit.repos.getContent({
+          const response = await octokit2.repos.getContent({
             owner,
             repo,
             path,

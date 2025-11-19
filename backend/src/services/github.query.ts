@@ -97,8 +97,12 @@ export interface GitHubResponse {
   };
 }
 
-const query = `query ($search: String!, $count: Int!) {
-  search(query: $search, type: REPOSITORY, first: $count) {
+const query = `query ($search: String!, $count: Int!, $cursor: String) {
+  search(query: $search, type: REPOSITORY, first: $count, after: $cursor) {
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
     nodes {
       ... on Repository {
         id
@@ -156,7 +160,7 @@ const query = `query ($search: String!, $count: Int!) {
 
         # KEEP issueSample basics (needed for scoring) — lightweight, no timelineItems
         issueSamples: issues(
-          first: 5
+          first: 3
           states: OPEN
           orderBy: { field: CREATED_AT, direction: DESC }
         ) {
@@ -211,7 +215,7 @@ const query = `query ($search: String!, $count: Int!) {
 
         recentPRs: pullRequests(
           states: [OPEN, MERGED, CLOSED]
-          first: 20
+          first: 5
           orderBy: { field: CREATED_AT, direction: DESC }
         ) {
           nodes {
@@ -246,8 +250,8 @@ export async function safeGithubQuery(
   const variables = {
     search: searchQuery,
     count: 10,
+    cursor: metadata?.cursor || null,
   };
-
 
   try {
     return await gh(query, variables);

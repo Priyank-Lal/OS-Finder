@@ -82,6 +82,9 @@ export async function processSummaries(): Promise<void> {
           completed++;
         }
       });
+      
+      // Add delay to prevent overloading the queue
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
     // Wait for completion

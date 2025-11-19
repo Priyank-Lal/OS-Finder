@@ -44,23 +44,23 @@ export async function mapGithubRepoToProject(response: any, lang: string) {
 
       const prMergeRatio =
         prNodes.length > 0
-          ? prNodes.filter((pr: any) => pr.mergedAt).length / prNodes.length
+          ? Number((prNodes.filter((pr: any) => pr.mergedAt).length / prNodes.length).toFixed(2))
           : 0;
 
       // ---------- ISSUE SAMPLE METRICS ----------
       const issuesWithResponse = issueSamples.filter(
-        (i: any) => i.labels?.nodes?.length > 0 // lightweight detection
+        (i: any) => i.comments?.totalCount > 0
       );
 
       const issueResponseRate =
         issueSamples.length > 0
-          ? issuesWithResponse.length / issueSamples.length
+          ? Number((issuesWithResponse.length / issueSamples.length).toFixed(2))
           : 0;
 
       const avgIssueResponseHours = null; // removed heavy timeline usage
 
       // ---------- MAINTAINER ACTIVITY ----------
-      const maintainerActivity = prMergeRatio * 0.6 + issueResponseRate * 0.4;
+      const maintainerActivity = Number((prMergeRatio * 0.6 + issueResponseRate * 0.4).toFixed(2));
 
       // ---------- LANGUAGES ----------
       const languages =
@@ -124,7 +124,6 @@ export async function mapGithubRepoToProject(response: any, lang: string) {
         last_commit: repo.defaultBranchRef?.target?.committedDate || null,
         last_updated: repo.updatedAt,
 
-        // ---------- AI FILLED LATER ----------
         summary: "",
         tech_stack: [],
         required_skills: [],
