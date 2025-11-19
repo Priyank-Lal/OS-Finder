@@ -1,4 +1,4 @@
-import { computeDetailedScores } from "../utils/scoring";
+import { scoreWithRules } from "../scoring/scoring.manual";
 
 /**
  * Transform GitHub GraphQL repo node → DB-ready project object
@@ -137,8 +137,9 @@ export async function mapGithubRepoToProject(response: any, lang: string) {
       };
 
       // ---------- INITIAL SCORING (NO AI) ----------
-      const score = await computeDetailedScores(projectBase as any, {
-        includeAIAnalysis: false,
+      const score = scoreWithRules(projectBase as any, {
+        readme: "",
+        contributingMd: "",
       });
 
       return {
@@ -149,7 +150,7 @@ export async function mapGithubRepoToProject(response: any, lang: string) {
         overall_score: score.overall_score,
         recommended_level: score.recommended_level,
         scoring_confidence: score.confidence,
-        score_breakdown: score.breakdown,
+        score_breakdown: score.score_breakdown,
       };
     })
   );

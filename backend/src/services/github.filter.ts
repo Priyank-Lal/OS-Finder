@@ -36,7 +36,7 @@ export function filterGithubRepos(repos: any[]) {
     }
 
     // Must have minimum contributors
-    if ((repo.contributors || 0) < 2) {
+    if ((repo.contributors || 0) < 1) {
       console.log(
         `Filtered ${repo.repo_name}: Only ${repo.contributors} contributors`
       );

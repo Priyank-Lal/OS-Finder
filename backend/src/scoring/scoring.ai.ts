@@ -87,9 +87,9 @@ SCORING GUIDELINES:
   * intermediate: everything else`;
 
   const response = await client.models.generateContent({
-    model: "gemini-2.5-flash-lite",
+    model: "gemini-2.0-flash-lite",
     contents: prompt,
-    maxOutputTokens: 1000,
+    maxOutputTokens: 1200,
     temperature: 0.1,
   } as any);
 

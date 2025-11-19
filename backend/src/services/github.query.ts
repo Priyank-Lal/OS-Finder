@@ -245,7 +245,7 @@ export async function safeGithubQuery(
   const searchQuery = `language:${metadata?.lang} stars:>${metadata?.minStars} fork:false archived:false pushed:>=${dateString}`;
   const variables = {
     search: searchQuery,
-    count: 15,
+    count: 10,
   };
 
 
@@ -254,6 +254,6 @@ export async function safeGithubQuery(
   } catch (err: any) {
     if (retries <= 0) throw err;
     await new Promise((res) => setTimeout(res, 1000));
-    return safeGithubQuery(variables, retries - 1);
+    return safeGithubQuery(metadata, retries - 1);
   }
 }
