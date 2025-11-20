@@ -75,19 +75,34 @@ export async function summarizeRepo(repo: any): Promise<void> {
 
     // ========== STEP 2.5: AI SUITABILITY CHECK ==========
     console.log(`Evaluating suitability for ${repoName}...`);
-    const suitability = await queuedAICall(
-      () =>
-        generateSuitabilityEvaluation({
-          readme,
-          description: repo.description || "",
-          topics: repo.topics || [],
-          fileTreeSummary: fileTreeMetrics
-            ? `Files: ${fileTreeMetrics.totalFiles}, Depth: ${fileTreeMetrics.maxDepth}, Configs: ${fileTreeMetrics.configFiles.join(", ")}`
-            : undefined,
-        }),
-      "Suitability Check",
-      repoName
-    );
+    
+
+    // Log the data being passed to suitability check
+    const suitabilityData = {
+      readme,
+      description: repo.description || "",
+      topics: repo.topics || [],
+      fileTreeSummary: fileTreeMetrics
+        ? `Files: ${fileTreeMetrics.totalFiles}, Depth: ${fileTreeMetrics.maxDepth}, Configs: ${fileTreeMetrics.configFiles.join(", ")}`
+        : undefined,
+    };
+    
+    console.log(`Suitability check data for ${repoName}:`, {
+      descriptionLength: suitabilityData.description.length,
+      topicsCount: suitabilityData.topics.length,
+      topics: suitabilityData.topics,
+      readmeLength: suitabilityData.readme.length,
+      hasFileTree: !!suitabilityData.fileTreeSummary,
+    });
+
+    // Call directly without queue to ensure it's not being skipped
+    const suitability = await generateSuitabilityEvaluation(suitabilityData);
+    
+    console.log(`Suitability result for ${repoName}:`, {
+      isSuitable: suitability.isSuitable,
+      reason: suitability.reason,
+      confidence: suitability.confidence,
+    });
 
     if (!suitability.isSuitable) {
       console.log(`🚫 Rejected ${repoName}: ${suitability.reason}`);

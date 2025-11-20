@@ -252,7 +252,7 @@ export async function safeGithubQuery(
   const searchQuery = `language:${metadata?.lang} stars:>${metadata?.minStars} fork:false archived:false pushed:>=${dateString}`;
   const variables = {
     search: searchQuery,
-    count: 10,
+    count: 2,
     cursor: metadata?.cursor || null,
   };
 
@@ -267,7 +267,7 @@ export async function safeGithubQuery(
   } catch (err: any) {
     if (retries <= 0) throw err;
     console.warn(`GitHub query failed, retrying (${retries} left):`, err.message);
-    await new Promise((res) => setTimeout(res, 2000)); // Increased delay
+    await new Promise((res) => setTimeout(res, 2000)); 
     return safeGithubQuery(metadata, retries - 1);
   }
 }

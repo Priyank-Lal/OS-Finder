@@ -49,6 +49,7 @@ export const _config = {
   MONGODB_URI: process.env.MONGODB_URI || "",
   GEMINI_KEYS: process.env.GEMINI_KEYS || "",
   SCORING_AI_GEMINI_KEY: process.env.SCORING_AI_GEMINI_KEY || "",
+  SUITABILITY_AI_GEMINI_KEY: process.env.SUITABILITY_AI_GEMINI_KEY || "",
 
   // Optional
   NODE_ENV: process.env.NODE_ENV || "development",

@@ -11,7 +11,7 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
     let cursor: string | null = null;
     let hasNextPage = true;
     let loopCount = 0;
-    const MAX_LOOPS = 6; // Increased limit for multi-token fetching
+    const MAX_LOOPS = 1;
 
     console.log(`Starting fetch for ${lang} (minStars: ${minStars})...`);
 
@@ -140,3 +140,4 @@ export const getRepoById = async (req: Request, res: Response) => {
     });
   }
 };
+
