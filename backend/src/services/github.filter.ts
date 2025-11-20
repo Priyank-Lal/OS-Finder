@@ -21,8 +21,8 @@ export function filterGithubRepos(repos: any[]) {
       return false;
     }
 
-    // 4. Must have at least 5 open issue (to ensure there's work to do)
-    if ((repo.issue_data?.total_open || 0) < 5) {
+    // 4. Must have at least 10 open issue (to ensure there's work to do)
+    if ((repo.issue_data?.total_open || 0) < 10) {
       console.log(`Filtered ${repo.repo_name}: No open issues`);
       return false;
     }
@@ -56,6 +56,11 @@ export function filterGithubRepos(repos: any[]) {
 
     if (isForbidden) {
       console.log(`Filtered ${repo.repo_name}: Forbidden type`);
+      return false;
+    }
+
+    if (repo.open_prs < 5) {
+      console.log(`Filtered ${repo.repo_name}: Low PRs`);
       return false;
     }
 

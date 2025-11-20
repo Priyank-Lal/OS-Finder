@@ -252,7 +252,7 @@ export async function safeGithubQuery(
   const searchQuery = `language:${metadata?.lang} stars:>${metadata?.minStars} fork:false archived:false pushed:>=${dateString}`;
   const variables = {
     search: searchQuery,
-    count: 2,
+    count: 10,
     cursor: metadata?.cursor || null,
   };
 

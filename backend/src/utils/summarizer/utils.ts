@@ -86,14 +86,7 @@ export async function summarizeRepo(repo: any): Promise<void> {
         ? `Files: ${fileTreeMetrics.totalFiles}, Depth: ${fileTreeMetrics.maxDepth}, Configs: ${fileTreeMetrics.configFiles.join(", ")}`
         : undefined,
     };
-    
-    console.log(`Suitability check data for ${repoName}:`, {
-      descriptionLength: suitabilityData.description.length,
-      topicsCount: suitabilityData.topics.length,
-      topics: suitabilityData.topics,
-      readmeLength: suitabilityData.readme.length,
-      hasFileTree: !!suitabilityData.fileTreeSummary,
-    });
+
 
     // Call directly without queue to ensure it's not being skipped
     const suitability = await generateSuitabilityEvaluation(suitabilityData);
@@ -137,7 +130,7 @@ export async function summarizeRepo(repo: any): Promise<void> {
           },
         }
       );
-      return; // Stop processing
+      return; 
     }
 
     // ========== STEP 3: AI METADATA GENERATION ==========

@@ -53,15 +53,16 @@ export const generateSuitabilityEvaluation = async (data: {
        - Archived projects
     
     ONLY ACCEPT if the repository is:
-    - A production library, framework, or tool used by others (e.g. React, Vue, Angular, etc.)
+    - A production library, framework, or tool used by others (e.g. React, Vue, Angular, PyTorch, Next.js, Material UI, etc.)
     - An application with ongoing development
     - A utility or service that solves a real problem
     - Has clear evidence of active maintenance and real-world usage
     
     IMPORTANT CLARIFICATION:
-    - DO NOT reject a project just because it is large, complex, or has strict contribution rules (like React, Linux, VS Code). These ARE suitable.
-    - DO NOT reject a project just because it is "hard" for beginners.
-    - ONLY reject if it is fundamentally NOT a software project (e.g. a list, a book, a tutorial) or is purely for personal learning.
+    - **DO NOT REJECT** a project just because it is large, complex, or has strict contribution rules (like React, Linux, VS Code). These ARE suitable.
+    - **DO NOT REJECT** a project just because it is "hard" for beginners. We support ALL skill levels.
+    - **DO NOT REJECT** a project because it says "read contributing guidelines" or has a CLA.
+    - **ONLY REJECT** if it is fundamentally NOT a software project (e.g. a list, a book, a tutorial, a collection of links) or is purely for personal learning/homework.
     
     Return ONLY valid JSON:
     {
