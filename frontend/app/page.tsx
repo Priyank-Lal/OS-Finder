@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import Header from "@/components/layout/header";
 import FilterBar from "@/components/layout/filter-bar";
 import RepoCard from "@/components/layout/repo-card";
+import { RepoCardSkeleton } from "@/components/layout/repo-card-skeleton";
 import { Input } from "@/components/ui/input";
 import { useRepos } from "@/hooks/use-repos";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -26,12 +27,11 @@ interface RepoCardProps {
   description: string;
   open_prs: number;
   stars: number;
-  score: number;
-  final_score: number;
-  friendliness: number;
-  maintenance: number;
+  overall_score: number;
+  beginner_friendliness: number;
+  contribution_readiness: number;
   accessibility: number;
-  complexity: number;
+  technical_complexity: number;
   ai_categories: string[];
   contributors: number;
   has_contributing: boolean;
@@ -129,9 +129,9 @@ export default function HomePage() {
         {/* Repos Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-8">
           {isLoading ? (
-            <div className="col-span-full text-center py-12">
-              <p className="text-muted-foreground">Loading repositories...</p>
-            </div>
+            Array.from({ length: 8 }).map((_, i) => (
+              <RepoCardSkeleton key={i} />
+            ))
           ) : isError ? (
             <div className="col-span-full text-center py-12">
               <p className="text-destructive">Error: {error?.message}</p>

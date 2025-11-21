@@ -46,12 +46,12 @@ export default function FilterBar({
   return (
     <div className="space-y-4">
       {/* Category Pills */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap no-scrollbar">
         <Button
           variant={selectedCategory === null ? "default" : "outline"}
           size="sm"
           onClick={() => setSelectedCategory(null)}
-          className="rounded-full"
+          className="rounded-full whitespace-nowrap shrink-0"
         >
           All Categories
         </Button>
@@ -63,7 +63,7 @@ export default function FilterBar({
             onClick={() =>
               setSelectedCategory(cat === selectedCategory ? null : cat)
             }
-            className="rounded-full capitalize"
+            className="rounded-full capitalize whitespace-nowrap shrink-0"
           >
             {cat}
           </Button>

@@ -82,6 +82,7 @@ export interface IProject extends Document {
   repo_name: string;
   repo_url: string;
   owner: string;
+  avatar_url?: string;
   description: string;
   language: string;
 

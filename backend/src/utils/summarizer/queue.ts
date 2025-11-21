@@ -8,7 +8,7 @@ const apiKeyCount = (_config.GEMINI_KEYS || "")
 export const AI_CALLS_PER_REPO = 5;
 export const SAFE_RPM_PER_KEY = 12;
 export const TOTAL_SAFE_RPM = apiKeyCount * SAFE_RPM_PER_KEY;
-export const BATCH_LIMIT = 30;
+export const BATCH_LIMIT = 60;
 export const MAX_RETRY_ATTEMPTS = 3;
 
 export const aiQueue = new PQueue({

@@ -37,7 +37,7 @@ export default function ActivityStats({
               Avg PR Merge Time
             </p>
             <p className="text-2xl font-bold flex items-center gap-2">
-              {avgPRMergeHours}h
+              {avgPRMergeHours ? avgPRMergeHours.toFixed(1) : "N/A"}h
               <Zap className="w-5 h-5 text-yellow-500" />
             </p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -47,7 +47,7 @@ export default function ActivityStats({
           <div>
             <p className="text-sm text-muted-foreground mb-1">PR Merge Ratio</p>
             <p className="text-2xl font-bold flex items-center gap-2">
-              {Math.round(prMergeRatio * 100)}%
+              {prMergeRatio ? Math.round(prMergeRatio * 100) : 0}%
               <ArrowUp className="w-5 h-5 text-emerald-500" />
             </p>
             <p className="text-xs text-muted-foreground mt-1">

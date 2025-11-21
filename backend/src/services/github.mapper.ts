@@ -88,6 +88,7 @@ export async function mapGithubRepoToProject(response: any, lang: string) {
         repoId: repo.id,
         repo_name: repo.name,
         owner: repo.owner.login,
+        avatar_url: repo.owner.avatarUrl,
         repo_url: repo.url,
         description: repo.description || "",
         language: repo.primaryLanguage?.name || lang,

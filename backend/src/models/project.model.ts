@@ -18,6 +18,7 @@ const projectSchema = new Schema(
       },
     },
     owner: { type: String, required: true, trim: true },
+    avatar_url: { type: String, default: "" },
     description: { type: String, default: "" },
     language: { type: String, required: true },
 

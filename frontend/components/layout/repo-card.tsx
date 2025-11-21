@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Star, GitFork, Zap, Users } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { Star, GitFork, Zap, Users, Circle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -31,15 +32,13 @@ interface RepoCardProps {
     description: string;
     open_prs: number;
     stars: number;
-    score: number;
-    final_score: number;
-    friendliness: number;
-    maintenance: number;
-    accessibility: number;
-    complexity: number;
     ai_categories: string[];
     contributors: number;
     has_contributing: boolean;
+    beginner_friendliness: number;
+    contribution_readiness: number;
+    technical_complexity: number;
+    overall_score: number;
     issue_data: {
       total_open_issues: number;
       good_first_issue_count: number;
@@ -63,44 +62,59 @@ interface RepoCardProps {
     summary_level: string;
     last_updated: Date;
     last_commit: Date;
+    avatar_url?: string;
   };
 }
 
 export default function RepoCard({ repo }: RepoCardProps) {
   return (
     <Link href={`/repo/${repo.repoId}`}>
-      <Card className="hover:border-accent/50 transition-all cursor-pointer h-full flex flex-col overflow-hidden">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <CardTitle className="text-lg font-semibold truncate flex-1 al">
-              {repo.repo_name}
-            </CardTitle>
+      <Card className="h-full flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-muted/40 hover:border-primary/20 group">
+        <CardHeader className="pb-3 space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              {repo.avatar_url && (
+                <img
+                  src={repo.avatar_url}
+                  alt={repo.owner}
+                  className="w-8 h-8 rounded-full border border-border shrink-0"
+                />
+              )}
+              <div className="min-w-0">
+                <CardTitle className="text-lg font-bold truncate leading-tight group-hover:text-primary transition-colors">
+                  {repo.repo_name}
+                </CardTitle>
+                <p className="text-xs text-muted-foreground truncate">
+                  by {repo.owner}
+                </p>
+              </div>
+            </div>
             <div className="shrink-0">
               <DifficultyBadge difficulty={repo.summary_level} />
             </div>
           </div>
-          <CardDescription className="line-clamp-2 text-xs leading-snug">
+          <CardDescription className="line-clamp-3 text-sm leading-relaxed text-muted-foreground/90">
             {repo.summary}
           </CardDescription>
         </CardHeader>
 
         <CardContent className="flex-1 flex flex-col gap-2 pt-2">
           {/* Meta Info Row */}
-          <div className="flex items-center gap-1 flex-wrap text-xs">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Star className="w-3.5 h-3.5" />
-              <span>{(repo.stars / 1000).toFixed(0)}k</span>
+          {/* Meta Info Row */}
+          <div className="flex items-center gap-4 text-sm mb-3 px-1">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Star className="w-4 h-4 text-yellow-500/80" />
+              <span className="font-medium text-foreground">
+                {repo.stars ? (repo.stars / 1000).toFixed(1) : "0.0"}k
+              </span>
             </div>
-            <Badge variant="outline" className="text-xs px-1.5 py-0 h-5">
-              {repo.language}
-            </Badge>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <GitFork className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Circle className="w-3 h-3 fill-sky-500 text-sky-500" />
+              <span className="font-medium text-foreground">{repo.language}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <GitFork className="w-4 h-4" />
               <span>{repo.forkCount}</span>
-            </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Users className="w-3.5 h-3.5" />
-              <span>{repo.contributors}</span>
             </div>
           </div>
 
@@ -128,12 +142,12 @@ export default function RepoCard({ repo }: RepoCardProps) {
           <div className="space-y-1">
             <ScoreBar
               label="Friendliness"
-              value={repo.friendliness}
+              value={repo.beginner_friendliness || 0}
               color="green"
             />
             <ScoreBar
-              label="Maintenance"
-              value={repo.maintenance}
+              label="Readiness"
+              value={repo.contribution_readiness || 0}
               color="yellow"
             />
           </div>
@@ -156,8 +170,12 @@ export default function RepoCard({ repo }: RepoCardProps) {
 
           {/* Footer: Last Updated */}
           {repo.last_updated && (
-            <div className="text-xs text-muted-foreground line-clamp-1">
-              Updated: {new Date(repo.last_updated).toLocaleDateString()}
+            <div className="pt-2 mt-auto border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+              <span>Updated {formatDistanceToNow(new Date(repo.last_updated), { addSuffix: true })}</span>
+              <div className="flex items-center gap-1">
+                <Users className="w-3 h-3" />
+                <span>{repo.contributors} contributors</span>
+              </div>
             </div>
           )}
         </CardContent>
