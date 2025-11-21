@@ -14,8 +14,26 @@ export const generateSuitabilityEvaluation = async (data: {
   fileTreeSummary?: string;
 }): Promise<SuitabilityResult> => {
   const prompt = `
-    You are a STRICT filter for an open-source contribution platform. Your job is to REJECT repositories that are NOT suitable for meaningful code contributions.
+    You are a STRICT filter for an open-source contribution platform.
+    Your ONLY job is to separate REAL software projects from non-software repositories.
+
+    GOAL: Accept ALL valid software projects (libraries, tools, apps, frameworks) regardless of complexity, size, or difficulty.
     
+    CRITICAL RULES:
+    1. **ACCEPT** any repository that contains actual source code for a library, tool, framework, or application.
+       - Examples: React, Linux, VS Code, small CLI tools, utility libraries.
+       - Complexity does NOT matter. "Too hard for beginners" is NOT a reason to reject.
+       - Strict contribution rules (CLA, guidelines) are NOT a reason to reject.
+
+    2. **REJECT** only if it is fundamentally NOT a software project:
+       - **Learning/Homework**: "my-first-project", "algorithms-practice", "leetcode-solutions", "course-assignments".
+       - **Lists/Collections**: "awesome-xyz", "resources-list", "books-collection".
+       - **Docs/Reference**: Style guides, cheat sheets, pure documentation.
+       - **Personal**: Dotfiles, resumes, portfolios, blogs.
+       - **Empty/Abandoned**: No code, just a README.
+
+    If a repo is a real software project but very advanced (e.g. PyTorch, Kubernetes), you MUST ACCEPT it.
+
     Repository Details:
     Description: ${data.description}
     Topics: ${data.topics.join(", ")}
@@ -23,46 +41,6 @@ export const generateSuitabilityEvaluation = async (data: {
     
     README (first 4000 chars):
     ${data.readme.slice(0, 4000)}
-    
-    CRITICAL: You must REJECT the following types of repositories:
-    
-    1. **Learning/Educational Projects**:
-       - Algorithm implementations (e.g., "javascript-algorithms", "python-algorithms", "data-structures")
-       - Coding challenge solutions (leetcode, hackerrank, codewars, etc.)
-       - Tutorial collections or course materials
-       - "Learn X" or "X for beginners" projects
-       - Practice/exercise repositories
-       - University/homework assignments
-    
-    2. **Reference/Documentation Only**:
-       - Style guides (e.g., "airbnb-javascript", "google-style-guide")
-       - Awesome lists or curated collections
-       - Books, papers, or reading lists
-       - Cheat sheets or quick references
-       - Resource compilations
-    
-    3. **Personal/Non-Collaborative**:
-       - Personal dotfiles or configurations
-       - Resumes, portfolios, or personal websites
-       - Blog repositories
-       - Personal notes or documentation
-    
-    4. **Inactive/Empty**:
-       - Clearly abandoned projects
-       - Empty or template repositories
-       - Archived projects
-    
-    ONLY ACCEPT if the repository is:
-    - A production library, framework, or tool used by others (e.g. React, Vue, Angular, PyTorch, Next.js, Material UI, etc.)
-    - An application with ongoing development
-    - A utility or service that solves a real problem
-    - Has clear evidence of active maintenance and real-world usage
-    
-    IMPORTANT CLARIFICATION:
-    - **DO NOT REJECT** a project just because it is large, complex, or has strict contribution rules (like React, Linux, VS Code). These ARE suitable.
-    - **DO NOT REJECT** a project just because it is "hard" for beginners. We support ALL skill levels.
-    - **DO NOT REJECT** a project because it says "read contributing guidelines" or has a CLA.
-    - **ONLY REJECT** if it is fundamentally NOT a software project (e.g. a list, a book, a tutorial, a collection of links) or is purely for personal learning/homework.
     
     Return ONLY valid JSON:
     {

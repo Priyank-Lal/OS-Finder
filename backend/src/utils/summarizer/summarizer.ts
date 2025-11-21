@@ -88,12 +88,12 @@ export async function processSummaries(): Promise<void> {
       });
       
       // Add delay to prevent overloading the queue
-      await new Promise((resolve) => setTimeout(resolve, 8000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
-      // Batch pause logic: Pause for 60s every 5 repos to respect API limits
-      if (scheduledCount % 5 === 0) {
-        console.log(`\n--- Pausing for 120s to cool down API (Processed batch of 5) ---\n`);
-        await new Promise((resolve) => setTimeout(resolve, 120000));
+      // Batch pause logic: Pause for 60s every 7 repos to respect API limits
+      if (scheduledCount % 7 === 0) {
+        console.log(`\n--- Pausing for 60s to cool down API (Processed batch of 5) ---\n`);
+        await new Promise((resolve) => setTimeout(resolve, 60000));
       }
     }
 

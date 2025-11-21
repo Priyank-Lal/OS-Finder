@@ -1,6 +1,7 @@
 import { Octokit } from "@octokit/rest";
 import { parseRepoIdentifier, queuedRestCall } from "./github.helper";
 import { _config } from "../config/config";
+import { cleanMarkdownForAI } from "./markdown.utils";
 
 const octokit1 = new Octokit({
   auth: _config.GITHUB_TOKEN,
@@ -30,7 +31,9 @@ export async function fetchReadme(
         mediaType: { format: "raw" },
       });
 
-      return response.data as unknown as string;
+      const rawReadme = response.data as unknown as string;
+      // Clean markdown for AI processing
+      return cleanMarkdownForAI(rawReadme);
     }
   );
 
