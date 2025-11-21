@@ -21,7 +21,7 @@ export default function RepoCard({ repo }: { repo: RepoCardProps }) {
   return (
     <Link href={`/repo/${repo.repoId}`}>
       <Card className="h-full flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-muted/40 hover:border-primary/20 group">
-        <CardHeader className="pb-3 space-y-2">
+        <CardHeader className="pb- space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               {repo.avatar_url && (
@@ -32,7 +32,7 @@ export default function RepoCard({ repo }: { repo: RepoCardProps }) {
                 />
               )}
               <div className="min-w-0">
-                <CardTitle className="text-lg font-bold truncate leading-tight group-hover:text-primary transition-colors">
+                <CardTitle className="text-lg font-bold truncate leading-tight group-hover:text-primary transition-colors max-w-48">
                   {repo.repo_name}
                 </CardTitle>
                 <p className="text-xs text-muted-foreground truncate">
@@ -44,12 +44,12 @@ export default function RepoCard({ repo }: { repo: RepoCardProps }) {
               <DifficultyBadge difficulty={repo.recommended_level} />
             </div>
           </div>
-          <CardDescription className="line-clamp-3 text-sm leading-relaxed text-muted-foreground/90">
+          <CardDescription className="line-clamp-3 h-16 text-sm leading-relaxed text-muted-foreground/90">
             {repo.summary || repo.description || "No description available"}
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="flex-1 flex flex-col gap-2 pt-2">
+        <CardContent className="flex-1 flex flex-col gap-2">
           {/* Meta Info Row */}
           <div className="flex items-center gap-4 text-sm mb-3 px-1">
             <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -71,24 +71,43 @@ export default function RepoCard({ repo }: { repo: RepoCardProps }) {
           </div>
 
           {/* Categories */}
-          {repo.categories && repo.categories.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {repo.categories?.slice(0, 2).map((cat) => (
-                <Badge
-                  key={cat}
-                  variant="secondary"
-                  className="text-xs px-1.5 py-0 h-5 capitalize"
-                >
-                  {cat}
-                </Badge>
-              ))}
-              {repo.categories?.length > 2 && (
-                <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
-                  +{repo.categories.length - 2}
-                </Badge>
-              )}
-            </div>
-          )}
+          {
+            repo.topics && repo.topics.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {repo.topics.slice(0, 2).map((cat) => (
+                  <Badge
+                    key={cat}
+                    variant="secondary"
+                    className="text-xs px-1.5 py-0 h-5 capitalize"
+                  >
+                    {cat}
+                  </Badge>
+                ))}
+                {repo.topics.length > 2 && (
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
+                    +{repo.topics.length - 2}
+                  </Badge>
+                )}
+              </div>
+            ) : repo.categories && repo.categories.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {repo.categories.slice(0, 2).map((cat) => (
+                  <Badge
+                    key={cat}
+                    variant="secondary"
+                    className="text-xs px-1.5 py-0 h-5 capitalize"
+                  >
+                    {cat}
+                  </Badge>
+                ))}
+                {repo.categories.length > 2 && (
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
+                    +{repo.categories.length - 2}
+                  </Badge>
+                )}
+              </div>
+            ) : null
+          }
 
           {/* Score Bars - Compact */}
           <div className="space-y-1">

@@ -344,7 +344,7 @@ export default function RepoDetailPage({
                         </div>
                         <div>
                           <p className="font-medium text-sm mb-1 line-clamp-1">
-                            {issue.title}
+                            {issue.title != "" ? issue.title : "No Title"}
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {issue.labels?.slice(0, 3).map((label: string) => (
