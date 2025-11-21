@@ -9,56 +9,8 @@ import { RepoCardSkeleton } from "@/components/layout/repo-card-skeleton";
 import { Input } from "@/components/ui/input";
 import { useRepos } from "@/hooks/use-repos";
 import { useDebounce } from "@/hooks/use-debounce";
+import { RepoCardProps } from "@/interface/project.interface";
 
-interface RepoCardProps {
-  _id: string;
-  repoId: String;
-  repo_name: string;
-  repo_url: string;
-  owner: string;
-  language: string;
-  licenseInfo: {
-    name: string;
-    key: any;
-  };
-  isArchived: boolean;
-  forkCount: number;
-  topics: string[];
-  description: string;
-  open_prs: number;
-  stars: number;
-  overall_score: number;
-  beginner_friendliness: number;
-  contribution_readiness: number;
-  accessibility: number;
-  technical_complexity: number;
-  ai_categories: string[];
-  contributors: number;
-  has_contributing: boolean;
-  issue_data: {
-    total_open_issues: number;
-    good_first_issue_count: number;
-    help_wanted_count: number;
-    first_timers_count: number;
-    beginner_count: number;
-    bug_count: number;
-    enhancement_count: number;
-    documentation_count: number;
-    refactor_count: number;
-    high_priority_count: number;
-  };
-  beginner_issue_total: number;
-  beginner_issue_score: number;
-  accessibility_score_base: number;
-  activity: {
-    avg_pr_merge_hours: number;
-    pr_merge_ratio: number;
-  };
-  summary: string;
-  summary_level: string;
-  last_updated: Date;
-  last_commit: Date;
-}
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -138,7 +90,7 @@ export default function HomePage() {
             </div>
           ) : repos.length > 0 ? (
             repos.map((repo: RepoCardProps) => (
-              <RepoCard key={repo._id} repo={repo} />
+              <RepoCard key={repo.repoId} repo={repo} />
             ))
           ) : (
             <div className="col-span-full text-center py-12">

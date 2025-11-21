@@ -19,7 +19,7 @@ export default function ScoreBar({
   };
 
   const colors = colorMap[color];
-  const percentage = Math.round(value * 100);
+  const percentage = Math.round(value); // Backend sends 0-100, not 0-1
 
   return (
     <div className="space-y-1">
