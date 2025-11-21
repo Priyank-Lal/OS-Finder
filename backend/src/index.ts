@@ -1,8 +1,8 @@
-import app from "./server";
+import app from "./server.js";
 import { config } from "dotenv";
-import { connectDB } from "./db/db";
-import "./scheduler/summarizer.cron"
-import "./scheduler/repos.cron";
+import { connectDB } from "./db/db.js";
+import "./scheduler/summarizer.cron.js"
+import "./scheduler/repos.cron.js";
 
 
 config();

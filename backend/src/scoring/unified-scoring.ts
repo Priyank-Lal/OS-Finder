@@ -1,9 +1,9 @@
-import { _config } from "../config/config";
-import { IProject } from "../models/project.interface";
-import { FileTreeMetrics } from "../utils/fileTreeAnalyzer";
-import { scoreWithAI } from "./scoring.ai";
-import { UnifiedScoreResult } from "./scoring.interface";
-import { scoreWithRules } from "./scoring.manual";
+import { _config } from "../config/config.js";
+import { IProject } from "../models/project.interface.js";
+import { FileTreeMetrics } from "../utils/fileTreeAnalyzer.js";
+import { scoreWithAI } from "./scoring.ai.js";
+import { UnifiedScoreResult } from "./scoring.interface.js";
+import { scoreWithRules } from "./scoring.manual.js";
 
 export async function computeUnifiedScore(
   repo: IProject,

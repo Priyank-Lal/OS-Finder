@@ -1,14 +1,14 @@
-import { _config } from "../../config/config";
-import { Project } from "../../models/project.model";
+import { _config } from "../../config/config.js";
+import { Project } from "../../models/project.model.js";
 import mongoose from "mongoose";
-import { summarizeRepo } from "./utils";
+import { summarizeRepo } from "./utils.js";
 import {
   AI_CALLS_PER_REPO,
   aiQueue,
   BATCH_LIMIT,
   repoQueue,
   TOTAL_SAFE_RPM,
-} from "./queue";
+} from "./queue.js";
 
 export async function processSummaries(): Promise<void> {
   try {

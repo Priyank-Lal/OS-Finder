@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Project } from "../models/project.model";
+import { Project } from "../models/project.model.js";
 
 // GET /topics/popular?lang=javascript
 export const getPopularTopics = async (req: Request, res: Response) => {

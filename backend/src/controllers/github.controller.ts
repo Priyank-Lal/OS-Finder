@@ -1,7 +1,7 @@
-import { Project } from "../models/project.model";
-import { safeGithubQuery } from "../services/github.query";
-import { mapGithubRepoToProject } from "../services/github.mapper";
-import { filterGithubRepos } from "../services/github.filter";
+import { Project } from "../models/project.model.js";
+import { safeGithubQuery } from "../services/github.query.js";
+import { mapGithubRepoToProject } from "../services/github.mapper.js";
+import { filterGithubRepos } from "../services/github.filter.js";
 import { Request, Response } from "express";
 
 

@@ -1,14 +1,14 @@
 import { GoogleGenAI } from "@google/genai";
-import { FileTreeMetrics, IProject } from "../models/project.interface";
+import { FileTreeMetrics, IProject } from "../models/project.interface.js";
 
-import { _config } from "../config/config";
+import { _config } from "../config/config.js";
 import {
   buildRepoContext,
   clamp,
   isValidAIResponse,
   validateLevel,
-} from "./scoring.utils";
-import { AIScoreResponse, UnifiedScoreResult } from "./scoring.interface";
+} from "./scoring.utils.js";
+import { AIScoreResponse, UnifiedScoreResult } from "./scoring.interface.js";
 
 export async function scoreWithAI(
   repo: IProject,

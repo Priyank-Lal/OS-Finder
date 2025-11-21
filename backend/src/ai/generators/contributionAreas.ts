@@ -1,12 +1,12 @@
 // --- Phase 3: Contribution areas ---
 
-import { callAI } from "../gemini.client";
+import { callAI } from "../gemini.client.js";
 import {
   ensureStringArray,
   safeSlice,
   sanitizeInput,
   tryParseJSON,
-} from "../gemini.utils";
+} from "../gemini.utils.js";
 
 const MAX_ISSUE_SAMPLES = 20;
 const MAX_CONTRIBUTING_LENGTH = 2000;

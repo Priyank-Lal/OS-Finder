@@ -1,6 +1,6 @@
 import cron from "node-cron";
-import { fetchRepos } from "../controllers/github.controller";
-import { Project } from "../models/project.model";
+import { fetchRepos } from "../controllers/github.controller.js";
+import { Project } from "../models/project.model.js";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

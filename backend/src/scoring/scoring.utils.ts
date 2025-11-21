@@ -1,4 +1,4 @@
-import { FileTreeMetrics, IProject } from "../models/project.interface";
+import { FileTreeMetrics, IProject } from "../models/project.interface.js";
 
 export function buildRepoContext(
   repo: IProject,

@@ -1,4 +1,4 @@
-import { FileTreeMetrics, IProject } from "../models/project.interface";
+import { FileTreeMetrics, IProject } from "../models/project.interface.js";
 import {
   calculateArchitectureScore,
   calculateDependenciesScore,
@@ -10,8 +10,8 @@ import {
   calculatePRActivityScore,
   calculateResponseScore,
   calculateSimplicityScore,
-} from "./manual-scoring.helper";
-import { UnifiedScoreResult } from "./scoring.interface";
+} from "./manual-scoring.helper.js";
+import { UnifiedScoreResult } from "./scoring.interface.js";
 
 export function scoreWithRules(
   repo: IProject,

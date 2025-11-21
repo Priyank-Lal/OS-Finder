@@ -45,7 +45,7 @@ export const errorHandler = (
   }
 
   // Log error (replace with proper logger)
-  console.error({
+  console.error("Global Error Handler Caught:", {
     timestamp: new Date().toISOString(),
     method: req.method,
     path: req.path,
@@ -53,6 +53,7 @@ export const errorHandler = (
     message,
     error: err.message,
     stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    fullError: err
   });
 
   // Send response

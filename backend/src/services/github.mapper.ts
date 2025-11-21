@@ -1,4 +1,4 @@
-import { scoreWithRules } from "../scoring/scoring.manual";
+import { scoreWithRules } from "../scoring/scoring.manual.js";
 
 /**
  * Transform GitHub GraphQL repo node → DB-ready project object

@@ -1,5 +1,5 @@
-import { IProject } from "../models/project.interface";
-import { clamp } from "./scoring.utils";
+import { IProject } from "../models/project.interface.js";
+import { clamp } from "./scoring.utils.js";
 
 export function calculateDocumentationScore(repo: IProject, context: any): number {
   let score = 0;

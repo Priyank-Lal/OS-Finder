@@ -3,9 +3,9 @@ import {
   fetchRepos,
   getRepoById,
   getReposFromDb,
-} from "../controllers/github.controller";
-import { Project } from "../models/project.model";
-import { getPopularTopics } from "../controllers/topics.controller";
+} from "../controllers/github.controller.js";
+import { Project } from "../models/project.model.js";
+import { getPopularTopics } from "../controllers/topics.controller.js";
 
 const router = Router();
 

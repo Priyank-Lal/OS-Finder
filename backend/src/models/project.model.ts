@@ -2,7 +2,7 @@
 // Cleaned up project schema for unified scoring system
 
 import mongoose, { Schema } from "mongoose";
-import { IProject } from "./project.interface";
+import { IProject } from "./project.interface.js";
 
 const projectSchema = new Schema(
   {

@@ -1,5 +1,5 @@
 import PQueue from "p-queue";
-import { _config } from "../../config/config";
+import { _config } from "../../config/config.js";
 
 const apiKeyCount = (_config.GEMINI_KEYS || "")
   .split(",")

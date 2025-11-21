@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { processSummaries } from "../utils/summarizer/summarizer";
+import { processSummaries } from "../utils/summarizer/summarizer.js";
 
 let isRunning = false;
 

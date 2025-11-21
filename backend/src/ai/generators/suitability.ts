@@ -1,5 +1,5 @@
-import { callAI } from "../gemini.client";
-import { tryParseJSON } from "../gemini.utils";
+import { callAI } from "../gemini.client.js";
+import { tryParseJSON } from "../gemini.utils.js";
 
 export interface SuitabilityResult {
   isSuitable: boolean;

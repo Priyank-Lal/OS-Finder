@@ -1,5 +1,5 @@
-import { callAI } from "../gemini.client";
-import { sanitizeInput, tryParseJSON } from "../gemini.utils";
+import { callAI } from "../gemini.client.js";
+import { sanitizeInput, tryParseJSON } from "../gemini.utils.js";
 
 const MAX_TASKS = 6;
 

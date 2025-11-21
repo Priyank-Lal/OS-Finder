@@ -2,11 +2,12 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
-    "module": "commonjs",
+    "module": "node16",
     "target": "es2022",
     "strict": true,
     "skipLibCheck": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "moduleResolution": "node16"
   },
   "include": ["src/**/*.ts", "src/utils/gemini.ts"],
   "exclude": ["node_modules"]

@@ -1,4 +1,4 @@
-import { REST_QUEUE } from "../services/github.rest";
+import { REST_QUEUE } from "../services/github.rest.js";
 
 export function parseRepoIdentifier(identifier: string): {
   owner: string;

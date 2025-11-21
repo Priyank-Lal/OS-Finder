@@ -1,15 +1,15 @@
 // backend/src/services/github.rest.ts
 import { Octokit } from "@octokit/rest";
-import { _config } from "../config/config";
+import { _config } from "../config/config.js";
 import PQueue from "p-queue";
-import { parseRepoIdentifier } from "../utils/github.helper";
+import { parseRepoIdentifier } from "../utils/github.helper.js";
 import {
   fetchReadme,
   fetchCodeOfConduct,
   fetchFileTree,
   fetchContributing,
   fetchIssueTemplates,
-} from "../utils/githuRest.utils";
+} from "../utils/githuRest.utils.js";
 
 
 

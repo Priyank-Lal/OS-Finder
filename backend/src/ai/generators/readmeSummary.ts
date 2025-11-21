@@ -1,5 +1,5 @@
-import { callAI } from "../gemini.client";
-import { ensureStringArray, safeSlice, sanitizeInput, tryParseJSON } from "../gemini.utils";
+import { callAI } from "../gemini.client.js";
+import { ensureStringArray, safeSlice, sanitizeInput, tryParseJSON } from "../gemini.utils.js";
 
 const MAX_README_LENGTH = 5000;
 

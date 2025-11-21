@@ -1,7 +1,7 @@
 import { Octokit } from "@octokit/rest";
-import { parseRepoIdentifier, queuedRestCall } from "./github.helper";
-import { _config } from "../config/config";
-import { cleanMarkdownForAI } from "./markdown.utils";
+import { parseRepoIdentifier, queuedRestCall } from "./github.helper.js";
+import { _config } from "../config/config.js";
+import { cleanMarkdownForAI } from "./markdown.utils.js";
 
 const octokit1 = new Octokit({
   auth: _config.GITHUB_TOKEN,

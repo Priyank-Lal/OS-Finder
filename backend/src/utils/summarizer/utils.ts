@@ -7,13 +7,13 @@ import {
   generateSuitabilityEvaluation,
   generateTaskSuggestions,
   generateTechAndSkills,
-} from "../../ai";
-import { validateAIResults } from "../../ai/gemini.utils";
-import { Project } from "../../models/project.model";
-import { fetchAllCommunityFiles } from "../../services/github.rest";
-import { analyzeFileTree } from "../fileTreeAnalyzer";
-import { aiQueue } from "./queue";
-import { computeUnifiedScore } from "../../scoring/unified-scoring";
+} from "../../ai/index.js";
+import { validateAIResults } from "../../ai/gemini.utils.js";
+import { Project } from "../../models/project.model.js";
+import { fetchAllCommunityFiles } from "../../services/github.rest.js";
+import { analyzeFileTree } from "../fileTreeAnalyzer.js";
+import { aiQueue } from "./queue.js";
+import { computeUnifiedScore } from "../../scoring/unified-scoring.js";
 
 export async function queuedAICall<T>(
   aiFunction: () => Promise<T>,

@@ -1,5 +1,5 @@
 import { graphql } from "@octokit/graphql";
-import { _config } from "../config/config";
+import { _config } from "../config/config.js";
 
 export interface GitHubRepoNode {
   id: string;

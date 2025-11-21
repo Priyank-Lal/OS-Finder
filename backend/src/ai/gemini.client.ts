@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
-import { _config } from "../config/config";
-import { sanitizeJSON } from "./gemini.utils";
+import { _config } from "../config/config.js";
+import { sanitizeJSON } from "./gemini.utils.js";
 
 // --- Key rotation ---
 const keys = (_config.GEMINI_KEYS || "")
