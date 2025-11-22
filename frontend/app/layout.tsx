@@ -13,7 +13,6 @@ export const metadata: Metadata = {
   description: "Find the best open source repositories for contribution",
 };
 
-import ChatWidget from '@/components/ChatWidget';
 
 export default function RootLayout({
   children,
@@ -25,7 +24,6 @@ export default function RootLayout({
       <body>
         <Providers>
           {children}
-          <ChatWidget />
           <Analytics />
         </Providers>
       </body>

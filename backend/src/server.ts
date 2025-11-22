@@ -1,6 +1,5 @@
 import express from "express";
 import { router as githubRouter } from "./routes/github.route.js";
-import { router as agentRouter } from "./routes/agent.route.js";
 import { config } from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
@@ -65,7 +64,7 @@ app.use("/api/github/fetch", fetchLimiter);
 
 // Routes
 app.use("/api/github", githubRouter);
-app.use("/api/agent", agentRouter);
+// app.use("/api/agent", agentRouter);
 
 app.use(notFoundHandler);
 
