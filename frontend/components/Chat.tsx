@@ -1,7 +1,9 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import { sendChatMessage } from '@/api/api';
+import RepoCard from './RepoCard';
+import RepoDetailCard from './RepoDetailCard';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -12,12 +14,20 @@ interface Message {
  * Chat component that talks to the OS‑Finder multi‑agent backend.
  * It sends the user message to `/api/agent/chat` and displays the
  * formatted response returned by the supervisor.
+ * Uses threadId for conversation persistence with MemorySaver.
  */
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [threadId, setThreadId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Generate a unique thread ID on component mount
+  useEffect(() => {
+    const newThreadId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setThreadId(newThreadId);
+  }, []);
 
   // Scroll to the newest message when messages change
   useEffect(() => {
@@ -31,25 +41,145 @@ export default function Chat() {
     setInput('');
     setLoading(true);
     try {
-      const response = await axios.post('/api/agent/chat', {
-        message: userMsg.content,
-        // optionally you could send the whole history for context
-        // conversationHistory: messages.map(m => ({ role: m.role, content: m.content })),
-      });
+      const response = await sendChatMessage(
+        userMsg.content,
+        threadId // Send threadId for conversation persistence
+      );
       const assistantMsg: Message = {
         role: 'assistant',
-        content: response.data?.response || response.data?.message || 'No response',
+        content: response.response || 'No response',
       };
       setMessages(prev => [...prev, assistantMsg]);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('Chat error:', err);
       const errorMsg: Message = {
         role: 'assistant',
-        content: '❌ Something went wrong. Please try again.',
+        content: err.response?.data?.error || '❌ Something went wrong. Please try again.',
       };
       setMessages(prev => [...prev, errorMsg]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const MessageContent = ({ content }: { content: string }) => {
+    // Try to parse as JSON for repo cards or detail view
+    try {
+      const trimmed = content.trim();
+      
+      // Handle JSON array (Finder results)
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        const data = JSON.parse(trimmed);
+        if (Array.isArray(data) && data.length > 0 && data[0].id && data[0].name) {
+          return (
+            <div className="space-y-2 mt-2">
+              {data.map((repo: any) => (
+                <RepoCard key={repo.id} repo={repo} />
+              ))}
+            </div>
+          );
+        }
+      }
+      
+      // Handle JSON object (Analyst detail)
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        const data = JSON.parse(trimmed);
+        if (data.id && data.name) {
+          return (
+            <div className="mt-2">
+              <RepoDetailCard repo={data} />
+            </div>
+          );
+        }
+      }
+    } catch (e) {
+      // Not JSON or invalid format, fall back to text rendering
+    }
+
+    // Parse and render formatted content (Markdown-like)
+    const lines = content.split('\n');
+    const elements: React.ReactNode[] = [];
+    let inCodeBlock = false;
+    let codeLines: string[] = [];
+
+    lines.forEach((line, idx) => {
+      // Code block detection
+      if (line.trim().startsWith('```')) {
+        if (inCodeBlock) {
+          // End code block
+          elements.push(
+            <pre key={`code-${idx}`} className="bg-gray-900 p-2 rounded mt-2 mb-2 overflow-x-auto">
+              <code className="text-xs text-green-400">{codeLines.join('\n')}</code>
+            </pre>
+          );
+          codeLines = [];
+          inCodeBlock = false;
+        } else {
+          // Start code block
+          inCodeBlock = true;
+        }
+        return;
+      }
+
+      if (inCodeBlock) {
+        codeLines.push(line);
+        return;
+      }
+
+      // List items
+      if (line.match(/^[\s]*[-*•]\s/)) {
+        elements.push(
+          <div key={idx} className="flex gap-2 my-1">
+            <span className="text-indigo-400">•</span>
+            <span>{line.replace(/^[\s]*[-*•]\s/, '')}</span>
+          </div>
+        );
+        return;
+      }
+
+      // Numbered lists
+      if (line.match(/^[\s]*\d+\.\s/)) {
+        elements.push(
+          <div key={idx} className="flex gap-2 my-1">
+            <span className="text-indigo-400">{line.match(/^\d+/)?.[0]}.</span>
+            <span>{line.replace(/^[\s]*\d+\.\s/, '')}</span>
+          </div>
+        );
+        return;
+      }
+
+      // Links (markdown style)
+      const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+      if (linkRegex.test(line)) {
+        const parts = line.split(linkRegex);
+        const rendered = parts.map((part, i) => {
+          if (i % 3 === 1) return <span key={i} className="text-indigo-300 underline">{part}</span>;
+          if (i % 3 === 2) return null; // Skip URLs
+          return part;
+        });
+        elements.push(<p key={idx} className="my-1">{rendered}</p>);
+        return;
+      }
+
+      // Bold text
+      if (line.includes('**')) {
+        const parts = line.split('**');
+        const rendered = parts.map((part, i) => 
+          i % 2 === 1 ? <strong key={i} className="font-bold">{part}</strong> : part
+        );
+        elements.push(<p key={idx} className="my-1">{rendered}</p>);
+        return;
+      }
+
+      // Regular line
+      if (line.trim()) {
+        elements.push(<p key={idx} className="my-1">{line}</p>);
+      } else {
+        elements.push(<br key={idx} />);
+      }
+    });
+
+    return <div className="whitespace-pre-wrap">{elements}</div>;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -86,7 +216,7 @@ export default function Chat() {
                 : 'bg-gray-800 text-gray-200 self-start mr-auto rounded-tl-none border border-gray-700'
             }`}
           >
-            <p className="whitespace-pre-wrap">{msg.content}</p>
+            <MessageContent content={msg.content} />
           </div>
         ))}
         {loading && (

@@ -10,7 +10,7 @@ import {
 export const chat = async (req: Request, res: Response, next: NextFunction) => {
   console.log("\n=== Chat Request Started ===");
   try {
-    const { message, conversationHistory } = req.body;
+    const { message, threadId } = req.body;
 
     if (!message) {
       res.status(400).json({ error: "Message is required" });
@@ -20,27 +20,25 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
     // Sanitize user input
     const sanitizedMessage = sanitizeUserInput(message);
     console.log("User message:", sanitizedMessage);
-
-    // Build message history
-    const messages = [];
     
-    // Add conversation history if provided (limit to last 10 messages to prevent context overflow)
-    if (conversationHistory && Array.isArray(conversationHistory)) {
-      const recentHistory = conversationHistory.slice(-10);
-      messages.push(...recentHistory);
-    }
-    
-    // Add current user message
-    messages.push(new HumanMessage(sanitizedMessage));
+    // Use threadId for conversation persistence, or generate a default one
+    const conversationThreadId = threadId || "default-thread";
+    console.log("Thread ID:", conversationThreadId);
 
-    // Invoke the graph
-    const inputs = { messages };
-    console.log(`Invoking agent graph with ${messages.length} messages...`);
+    // Build message
+    const userMessage = new HumanMessage(sanitizedMessage);
+
+    // Invoke the graph with thread configuration for memory
+    const inputs = { messages: [userMessage] };
+    const config = {
+      configurable: { thread_id: conversationThreadId },
+      recursionLimit: 25,
+    };
+    
+    console.log(`Invoking agent graph...`);
     
     const startTime = Date.now();
-    const result = await agentGraph.invoke(inputs, {
-      recursionLimit: 20,
-    });
+    const result = await agentGraph.invoke(inputs, config);
     const duration = Date.now() - startTime;
     
     console.log(`Agent completed in ${duration}ms. Total messages: ${result.messages.length}`);
@@ -60,7 +58,7 @@ export const chat = async (req: Request, res: Response, next: NextFunction) => {
       response: finalResponse,
       messageCount: result.messages.length,
       duration: duration,
-      conversationHistory: result.messages.slice(-20) // Return last 20 messages for context
+      threadId: conversationThreadId, // Return thread ID for client to use in next request
     });
   } catch (error: any) {
     console.error("Chat Error:", error);
