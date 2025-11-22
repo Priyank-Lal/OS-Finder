@@ -8,10 +8,11 @@ import { _config } from "../config/config.js";
 import { z } from "zod";
 
 // --- 1. Initialize Model ---
+
 const model = new ChatGoogleGenerativeAI({
-  model: "gemini-2.0-flash-exp",
+  model: "gemini-2.5-flash-lite",
   temperature: 0.3,
-  apiKey: _config.GEMINI_KEYS.split(",")[0] || _config.GEMINI_KEYS
+  apiKey: _config.AGENT_API_KEY
 });
 
 // --- 2. Define Tools for Workers ---

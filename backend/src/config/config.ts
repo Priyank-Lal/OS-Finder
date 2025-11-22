@@ -54,6 +54,7 @@ export const _config = {
   GEMINI_KEYS: process.env.GEMINI_KEYS || "",
   SCORING_AI_GEMINI_KEY: process.env.SCORING_AI_GEMINI_KEY || "",
   SUITABILITY_AI_GEMINI_KEY: process.env.SUITABILITY_AI_GEMINI_KEY || "",
+  AGENT_API_KEY: process.env.AGENT_API_KEY || "",
 
   // Optional
   NODE_ENV: process.env.NODE_ENV || "development",
