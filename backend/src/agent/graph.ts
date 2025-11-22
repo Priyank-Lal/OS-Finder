@@ -19,7 +19,55 @@ const model = new ChatGoogleGenerativeAI({
 const finderTools = [searchRepos];
 const analystTools = [getRepoDetails];
 
-// --- 3. Helper to extract repo IDs from conversation ---
+// --- 3. Define Zod Schemas for Structured Output ---
+
+const FinderResponseSchema = z.object({
+  repos: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string(),
+    language: z.string(),
+    score: z.number(),
+    stars: z.number(),
+    categories: z.array(z.string()).optional(),
+    topics: z.array(z.string()).optional(),
+    recommendedLevel: z.string().optional(),
+  }))
+});
+
+const AnalystResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  language: z.string(),
+  stars: z.number(),
+  score: z.number(),
+  overview: z.string(),
+  activity: z.object({
+    commits: z.string(),
+    contributors: z.string(),
+    lastUpdate: z.string(),
+  }),
+  health: z.object({
+    issues: z.string(),
+    pullRequests: z.string(),
+    maintenance: z.string(),
+  }),
+  technical: z.object({
+    dependencies: z.string(),
+    size: z.string(),
+    topics: z.array(z.string()),
+    categories: z.array(z.string()).optional(),
+  }),
+  contribution: z.object({
+    difficulty: z.string(),
+    opportunities: z.string(),
+    guidelines: z.string(),
+    recommendedLevel: z.string().optional(),
+  }),
+});
+
+// --- 4. Helper to extract repo IDs from conversation ---
 function extractRepoIdsFromMessages(messages: any[]): string[] {
   const repoIds: string[] = [];
   
@@ -42,7 +90,7 @@ function extractRepoIdsFromMessages(messages: any[]): string[] {
   return [...new Set(repoIds)]; // Remove duplicates
 }
 
-// --- 4. Define Worker Nodes ---
+// --- 5. Define Worker Nodes ---
 
 // Finder Agent: Searches for repositories
 const finderNode = async (state: typeof AgentState.State) => {
@@ -56,22 +104,32 @@ const finderNode = async (state: typeof AgentState.State) => {
       // @ts-ignore
       .filter(m => m.name === 'search_repos');
     
-    // If we have tool results, extract and return the JSON directly
+    // If we have tool results, parse and structure them
     if (recentToolResults.length > 0) {
       const toolResult = recentToolResults[recentToolResults.length - 1];
       const content = typeof toolResult.content === 'string' ? toolResult.content : JSON.stringify(toolResult.content);
       
       try {
-        // Parse and re-stringify to ensure it's valid JSON
         const parsed = JSON.parse(content);
         if (Array.isArray(parsed)) {
-          console.log("Finder returning JSON array with", parsed.length, "repos");
+          console.log("Finder structuring tool results with", parsed.length, "repos");
+          
+          // Use withStructuredOutput to format the response
+          const structuredModel = model.withStructuredOutput(FinderResponseSchema);
+          const systemPrompt = `You are formatting search results. Take the provided repository data and structure it into the required format. Include all fields from the input data.`;
+          
+          const result = await structuredModel.invoke([
+            new SystemMessage(systemPrompt),
+            new HumanMessage(`Format these repositories: ${content}`)
+          ]);
+          
+          // Return as JSON array for frontend parsing
           return {
-            messages: [new AIMessage(JSON.stringify(parsed))],
+            messages: [new AIMessage(JSON.stringify(result.repos))],
           };
         }
       } catch (e) {
-        console.log("Tool result was not JSON, falling back to model");
+        console.log("Tool result parsing failed, falling back to model");
       }
     }
     
@@ -79,32 +137,19 @@ const finderNode = async (state: typeof AgentState.State) => {
 
 Your role is to:
 1. ALWAYS use the 'search_repos' tool when the user asks to find repositories
-2. Extract language and keywords from the user's request
-3. Be proactive - use reasonable defaults if information is missing:
-   - "JS repos" → language="JavaScript", query=""
-   - "popular Python" → language="Python", query="popular"
-   - "React frameworks" → language="JavaScript", query="react framework"
-
-CRITICAL - OUTPUT FORMAT:
-After the tool returns results, you MUST:
-1. Parse the tool's JSON response
-2. Return ONLY a JSON array - nothing else
-3. Each object must have: id, name, description, language, score, stars
-4. Example format: [{"id":"MDEw...","name":"repo-name","description":"A cool repo","language":"JavaScript","score":85,"stars":1000}]
-
-RULES:
-- NO text before the JSON array
-- NO text after the JSON array  
-- NO markdown code blocks (no \`\`\`)
-- NO explanations or comments
-- JUST the raw JSON array
+2. Extract language, keywords, categories, topics, and difficulty level from the user's request
+3. Be proactive - use reasonable defaults if information is missing
+4. Examples:
+   - "beginner JS repos" → language="JavaScript", recommendedLevel="beginner"
+   - "machine learning projects" → topics=["machine-learning"]
+   - "web frameworks" → categories=["web"]
 
 IMPORTANT: Don't ask for more information - search with what you have!`;
 
     // Get recent user messages (not system/supervisor messages)
     const recentMessages = state.messages
       .filter(m => !(m.content as string)?.includes('[Supervisor:'))
-      .slice(-3); // Last 3 relevant messages
+      .slice(-3);
 
     const messages = [
       new SystemMessage(systemPrompt),
@@ -137,59 +182,14 @@ const analystNode = async (state: typeof AgentState.State) => {
     // Limit to 3 repo IDs to avoid overwhelming the prompt
     const limitedRepoIds = availableRepoIds.slice(0, 3);
     
-    const systemPrompt = `You are an Analyst agent specialized in analyzing repository details.
-
-Your role is to:
-1. Get detailed information about repositories using 'get_repo_details'
-2. Use repo IDs from the conversation - they're in previous Finder results
-3. Analyze metrics like code quality, maintainer activity, issue health
-4. Provide insights about suitability for contribution
-
-${limitedRepoIds.length > 0 ? `\nAvailable repository IDs from recent conversation:\n${limitedRepoIds.map((id, i) => `${i + 1}. ${id}`).join('\n')}\n\nUse these IDs with the get_repo_details tool.` : 'Ask the Finder to search for repositories first if no IDs are available.'}
-
-IMPORTANT OUTPUT FORMAT:
-After receiving tool results, return ONLY a JSON object (NOT an array) with this structure:
-{
-  "id": "repo_id",
-  "name": "repo_name",
-  "description": "brief description",
-  "language": "primary_language",
-  "stars": number,
-  "score": number,
-  "overview": "2-3 sentence overview of what the repo does",
-  "activity": {
-    "commits": "recent commit activity description",
-    "contributors": "contributor information",
-    "lastUpdate": "when last updated"
-  },
-  "health": {
-    "issues": "issue status and response time",
-    "pullRequests": "PR merge rate and activity",
-    "maintenance": "maintenance status"
-  },
-  "technical": {
-    "dependencies": "key dependencies",
-    "size": "codebase size",
-    "topics": ["topic1", "topic2"]
-  },
-  "contribution": {
-    "difficulty": "beginner/intermediate/advanced",
-    "opportunities": "what kind of contributions are welcome",
-    "guidelines": "brief contribution guidelines"
-  }
-}
-
-Do NOT add any text before or after the JSON object.
-Do NOT wrap it in markdown code blocks.
-
-IMPORTANT: Use the repo IDs from above. Don't ask the user for IDs!`;
-
     // Find the most recent user message
     const userMessages = state.messages.filter(m => m instanceof HumanMessage);
     const latestUserMessage = userMessages[userMessages.length - 1];
     
     // Check if there are recent Analyst tool results (from get_repo_details)
     const recentAnalystMessages = [];
+    const recentToolResults = [];
+    
     for (let i = state.messages.length - 1; i >= 0; i--) {
       const msg = state.messages[i];
       
@@ -210,10 +210,54 @@ IMPORTANT: Use the repo IDs from above. Don't ask the user for IDs!`;
         // @ts-ignore - name exists on ToolMessage
         if (msg.name === 'get_repo_details') {
           recentAnalystMessages.unshift(msg);
+          recentToolResults.push(msg);
         }
       }
     }
     
+    // If we have tool results, use withStructuredOutput to format them
+    if (recentToolResults.length > 0) {
+      const toolResult = recentToolResults[recentToolResults.length - 1];
+      const content = typeof toolResult.content === 'string' ? toolResult.content : JSON.stringify(toolResult.content);
+      
+      try {
+        const parsed = JSON.parse(content);
+        const repoData = Array.isArray(parsed) ? parsed[0] : parsed;
+        
+        if (repoData) {
+          console.log("Analyst structuring tool results for repo:", repoData.repo_name);
+          
+          // Use withStructuredOutput to format the response
+          const structuredModel = model.withStructuredOutput(AnalystResponseSchema);
+          const systemPrompt = `You are analyzing repository data. Take the provided repository information and structure it into a comprehensive analysis. Extract and organize all relevant information about activity, health, technical details, and contribution opportunities.`;
+          
+          const result = await structuredModel.invoke([
+            new SystemMessage(systemPrompt),
+            new HumanMessage(`Analyze this repository data and provide a structured analysis: ${content}`)
+          ]);
+          
+          // Return as JSON object for frontend parsing
+          return {
+            messages: [new AIMessage(JSON.stringify(result))],
+          };
+        }
+      } catch (e) {
+        console.log("Tool result parsing failed, falling back to model");
+      }
+    }
+    
+    const systemPrompt = `You are an Analyst agent specialized in analyzing repository details.
+
+Your role is to:
+1. Get detailed information about repositories using 'get_repo_details'
+2. Use repo IDs from the conversation OR search by repository name
+3. Analyze metrics like code quality, maintainer activity, issue health
+4. Provide insights about suitability for contribution
+
+${limitedRepoIds.length > 0 ? `\nAvailable repository IDs from recent conversation:\n${limitedRepoIds.map((id, i) => `${i + 1}. ${id}`).join('\n')}\n\nUse these IDs with the get_repo_details tool.` : 'You can use get_repo_details with a repository name if no IDs are available.'}
+
+IMPORTANT: Use the repo IDs from above OR the repository name mentioned by the user. Don't ask the user for IDs!`;
+
     // Build messages: system prompt + user message + any tool interaction from this turn
     const messages = [
       new SystemMessage(systemPrompt),

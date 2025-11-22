@@ -10,6 +10,9 @@ interface RepoCardProps {
     score: number;
     stars: number;
     summary?: string;
+    categories?: string[];
+    topics?: string[];
+    recommendedLevel?: string;
   };
 }
 
@@ -35,7 +38,7 @@ export default function RepoCard({ repo }: RepoCardProps) {
         </p>
 
         {/* Stats */}
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-4 text-sm mb-2">
           <div className="flex items-center gap-1.5 text-yellow-400">
             <Star className="w-4 h-4 fill-current" />
             <span className="font-semibold">{repo.stars?.toLocaleString() || 0}</span>
@@ -44,7 +47,28 @@ export default function RepoCard({ repo }: RepoCardProps) {
             <Trophy className="w-4 h-4" />
             <span className="font-semibold">{repo.score || 0}/100</span>
           </div>
+          {repo.recommendedLevel && (
+            <span className="px-2 py-0.5 rounded-full bg-green-900/30 text-green-400 text-xs border border-green-700">
+              {repo.recommendedLevel}
+            </span>
+          )}
         </div>
+
+        {/* Tags */}
+        {((repo.categories && repo.categories.length > 0) || (repo.topics && repo.topics.length > 0)) && (
+          <div className="flex flex-wrap gap-1.5">
+            {repo.categories?.slice(0, 3).map((cat, i) => (
+              <span key={`cat-${i}`} className="px-2 py-0.5 rounded bg-indigo-900/30 text-indigo-300 text-xs border border-indigo-700">
+                {cat}
+              </span>
+            ))}
+            {repo.topics?.slice(0, 3).map((topic, i) => (
+              <span key={`topic-${i}`} className="px-2 py-0.5 rounded bg-purple-900/30 text-purple-300 text-xs border border-purple-700">
+                {topic}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Accordion for Summary/Details */}
