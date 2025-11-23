@@ -128,8 +128,8 @@ const query = `query ($search: String!, $count: Int!, $cursor: String) {
           name
         }
 
-        # Languages breakdown (keep - cheap)
-        languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
+        # Languages breakdown (optimized: 10 → 5)
+        languages(first: 5, orderBy: {field: SIZE, direction: DESC}) {
           edges {
             size
             node {
@@ -159,7 +159,7 @@ const query = `query ($search: String!, $count: Int!, $cursor: String) {
           }
         }
 
-        # KEEP issueSample basics (needed for scoring) — lightweight
+        # Issue samples for label analysis (optimized: removed createdAt)
         issueSamples: issues(
           first: 3
           states: OPEN
@@ -167,7 +167,6 @@ const query = `query ($search: String!, $count: Int!, $cursor: String) {
         ) {
           nodes {
             title
-            createdAt
             labels(first: 5) {
               nodes {
                 name
@@ -179,16 +178,9 @@ const query = `query ($search: String!, $count: Int!, $cursor: String) {
         # KEEP standard issue categories (cheap)
         issues(states: OPEN) { totalCount }
 
+        # Optimized: Only check standard labels (AI handles custom labels)
         goodFirstIssues: issues(
-          labels: [
-            "good first issue", 
-            "good-first-issue", 
-            "easy", 
-            "starter", 
-            "beginner", 
-            "E-easy", 
-            "level:starter"
-          ]
+          labels: ["good first issue", "good-first-issue"]
           states: OPEN
         ) { totalCount }
 
