@@ -1,5 +1,6 @@
-import { callAI } from "../gemini.client.js";
-import { ensureStringArray, safeSlice, sanitizeInput, tryParseJSON } from "../gemini.utils.js";
+import { callAIStructured } from "../structured.client.js";
+import { ReadmeSummarySchema } from "../schemas.js";
+import { safeSlice, sanitizeInput, ensureStringArray } from "../gemini.utils.js";
 
 const MAX_README_LENGTH = 5000;
 
@@ -34,7 +35,6 @@ export async function generateReadmeSummary(
 OUTPUT_SCHEMA:
 {
   "summary": "<short 6-7 sentence summary describing the project purpose and where contributors are most useful>",
-  "level": "beginner" | "intermediate" | "advanced",
   "repo_categories": ["<category>", "...", ...]
 }
 
@@ -59,7 +59,6 @@ ALLOWED CATEGORIES (Choose which suit the repo):
 
 RULES:
 - summary: maximum 100-120 words, present tense. Focus on what the project does and 1-2 sentence about likely contribution areas.
-- level: choose the *single* best label using README + metadata.
 - repo_categories: Choose categories from the ALLOWED CATEGORIES list above. Invent new categories unless necessary.
 - Use metadata as supporting signals but do not repeat metadata in summary.
 
@@ -69,39 +68,23 @@ ${truncated}
 REPO_METADATA:
 ${metaStr}`;
 
-    const cleaned = await callAI(prompt, {
+    const result = await callAIStructured(prompt, ReadmeSummarySchema, {
       model: "gemini-2.5-flash-lite",
       maxTokens: 900,
       temperature: 0.0,
       retries: 2,
-      timeoutMs: 30000,
     });
 
-    if (!cleaned) {
+    if (!result) {
       console.warn("AI returned empty response for README summary");
       return { summary: "", level: "intermediate", repo_categories: [] };
     }
 
-    const parsed = tryParseJSON(cleaned, {
-      summary: "",
-      level: "intermediate",
-      repo_categories: [] as string[],
-    });
-
-    const summary =
-      typeof parsed.summary === "string" ? parsed.summary.trim() : "";
-
-    const level =
-      parsed.level === "beginner" || parsed.level === "advanced"
-        ? parsed.level
-        : "intermediate";
-
-    const repo_categories = ensureStringArray(parsed.repo_categories).slice(
-      0,
-      5
-    );
-
-    return { summary, level, repo_categories };
+    return {
+      summary: result.summary.trim(),
+      level: "intermediate", // Level is determined by scoring, not AI
+      repo_categories: result.repo_categories.slice(0, 5),
+    };
   } catch (err) {
     console.error("generateReadmeSummary failed:", err);
     return { summary: "", level: "intermediate", repo_categories: [] };

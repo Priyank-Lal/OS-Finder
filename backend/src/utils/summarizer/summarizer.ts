@@ -10,6 +10,8 @@ import {
   TOTAL_SAFE_RPM,
 } from "./queue.js";
 
+const MAX_RETRY_ATTEMPTS = 3;
+
 export async function processSummaries(): Promise<void> {
   try {
     if (mongoose.connection.readyState !== 1) {
@@ -21,13 +23,23 @@ export async function processSummaries(): Promise<void> {
 
     // Fetch repos needing summarization
     const repos = await Project.find({
-      $or: [
-        { summary: { $exists: false } },
-        { summary: "" },
-        { summary: null },
-        { file_tree_metrics: { $exists: false } },
+      $and: [
+        {
+          $or: [
+            { summary: { $exists: false } },
+            { summary: "" },
+            { summary: null },
+            { file_tree_metrics: { $exists: false } },
+          ],
+        },
+        { status: { $ne: "rejected" } },
+        {
+          $or: [
+            { summarization_attempts: { $exists: false } },
+            { summarization_attempts: { $lt: MAX_RETRY_ATTEMPTS } },
+          ],
+        },
       ],
-      status: { $ne: "rejected" },
     })
       .select(
         "_id repo_url repo_name stars forkCount contributors topics language " +
@@ -88,7 +100,11 @@ export async function processSummaries(): Promise<void> {
       });
       
       // Add delay to prevent overloading the queue
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      // Use exponential backoff for repos that have failed before
+      const attempts = repo.summarization_attempts || 0;
+      const baseDelay = 5000;
+      const retryDelay = attempts > 0 ? baseDelay * Math.pow(2, attempts) : baseDelay;
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
 
       // Batch pause logic: Pause for 60s every 7 repos to respect API limits
       if (scheduledCount % 7 === 0) {

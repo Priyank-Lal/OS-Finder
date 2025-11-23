@@ -1,5 +1,5 @@
-import { callAI } from "../gemini.client.js";
-import { tryParseJSON } from "../gemini.utils.js";
+import { callAIStructured } from "../structured.client.js";
+import { SuitabilitySchema } from "../schemas.js";
 
 export interface SuitabilityResult {
   isSuitable: boolean;
@@ -51,20 +51,14 @@ export const generateSuitabilityEvaluation = async (data: {
     }
   `;
 
-  const response = await callAI(prompt, {
+  const result = await callAIStructured(prompt, SuitabilitySchema, {
     model: "gemini-2.0-flash",
-    temperature: 0.0, // Make it more deterministic
+    temperature: 0.0,
   });
 
-  if (!response) {
+  if (!result) {
     throw new Error("AI suitability evaluation failed (empty response)");
   }
 
-  const defaultResult: SuitabilityResult = {
-    isSuitable: false, // Fail safe: reject if parsing fails
-    reason: "AI evaluation parsing failed",
-    confidence: 0,
-  };
-  
-  return tryParseJSON<SuitabilityResult>(response, defaultResult);
+  return result;
 };

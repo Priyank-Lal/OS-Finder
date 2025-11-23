@@ -52,7 +52,6 @@ export async function summarizeRepo(repo: any): Promise<void> {
       contributing: contributingMd,
       codeOfConduct,
       fileTree,
-      hasIssueTemplates,
     } = await fetchAllCommunityFiles(repo.repo_url);
 
     if (!readme) {
@@ -69,7 +68,6 @@ export async function summarizeRepo(repo: any): Promise<void> {
     const communityHealth = {
       has_code_of_conduct: !!codeOfConduct,
       has_contributing: !!contributingMd,
-      has_issue_templates: hasIssueTemplates,
       has_readme: !!readme,
     };
 
@@ -141,10 +139,35 @@ export async function summarizeRepo(repo: any): Promise<void> {
     const allLabels = await fetchRepoLabels(repo.repo_url);
     const labelMapping = await generateLabelAnalysis(allLabels, repo.issue_samples || []);
 
+    // Populate counts in labelMapping using allLabels data
+    const labelCounts = new Map(allLabels.map((l) => [l.name, l.count || 0]));
+
+    for (const category of Object.keys(labelMapping)) {
+      const catKey = category as keyof typeof labelMapping;
+      let totalCount = 0;
+      
+      // Sum counts for all labels in this category
+      for (const labelName of labelMapping[catKey].labels) {
+        totalCount += labelCounts.get(labelName) || 0;
+      }
+      
+      labelMapping[catKey].count = totalCount;
+    }
+
     console.log(`Mapped labels for ${repoName}:`, labelMapping);
 
     // ========== STEP 3: AI METADATA GENERATION ==========
     console.log(`Generating metadata for ${repoName}...`);
+
+    // Merge AI-detected counts into issue_data for better accuracy
+    // This solves the redundancy by making issue_data the aggregated summary
+    const mergedIssueData = { ...repo.issue_data };
+    
+    if (labelMapping.beginner.count > 0) mergedIssueData.beginner = labelMapping.beginner.count;
+    if (labelMapping.help_wanted.count > 0) mergedIssueData.help_wanted = labelMapping.help_wanted.count;
+    if (labelMapping.bug.count > 0) mergedIssueData.bug = labelMapping.bug.count;
+    if (labelMapping.enhancement.count > 0) mergedIssueData.enhancement = labelMapping.enhancement.count;
+    if (labelMapping.documentation.count > 0) mergedIssueData.documentation = labelMapping.documentation.count;
 
     const metadata = {
       stars: repo.stars || 0,
@@ -152,7 +175,7 @@ export async function summarizeRepo(repo: any): Promise<void> {
       contributors: repo.contributors || 0,
       topics: repo.topics || [],
       language: repo.language || null,
-      issue_counts: repo.issue_data || {},
+      issue_counts: mergedIssueData,
       activity: repo.activity || {},
     };
 
@@ -260,8 +283,10 @@ export async function summarizeRepo(repo: any): Promise<void> {
           status: "active",
           file_tree_metrics: fileTreeMetrics,
           community_health: communityHealth,
-          all_labels: allLabels,
           label_mapping: labelMapping,
+          top_labels: allLabels
+            .sort((a, b) => (b.count || 0) - (a.count || 0))
+            .slice(0, 10), // Top 10 labels by count
 
           // AI-generated content
           summary: phase1.summary || "",
@@ -311,9 +336,7 @@ export async function summarizeRepo(repo: any): Promise<void> {
           last_summarization_attempt: new Date(),
         },
       }
-    ).catch((updateErr) => {
-      console.error(`Failed to update error state:`, updateErr);
-    });
+    );
 
     throw err;
   }

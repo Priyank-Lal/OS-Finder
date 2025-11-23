@@ -40,8 +40,6 @@ export interface FileTreeMetrics {
   hasDocs: boolean;
   hasCI: boolean;
   hasMonorepo: boolean;
-  configFiles: string[];
-  lockFiles: string[];
   buildComplexity: number;
   testToCodeRatio: number;
 }
@@ -107,7 +105,7 @@ export interface IProject extends Document {
   status?: "pending" | "active" | "rejected";
   rejection_reason?: string;
 
-  // AI Analysis results only - no raw data
+  // AI Analysis results
   summary: string;
   tech_stack: string[];
   required_skills: string[];
@@ -136,19 +134,27 @@ export interface IProject extends Document {
   updatedAt: Date;
 
   // Label Analysis
-  all_labels?: Label[];
   label_mapping?: LabelMapping;
+  top_labels?: Label[];
 }
 
 export interface Label {
   name: string;
-  color: string;
-  description?: string;
+  count?: number;
+}
+
+export interface CategoryData {
+  labels: string[];
+  count: number;
 }
 
 export interface LabelMapping {
-  beginner: string[];
-  bug: string[];
-  help_wanted: string[];
-  enhancement: string[];
+  beginner: CategoryData;
+  bug: CategoryData;
+  help_wanted: CategoryData;
+  enhancement: CategoryData;
+  documentation: CategoryData;
+  testing: CategoryData;
+  performance: CategoryData;
+  security: CategoryData;
 }

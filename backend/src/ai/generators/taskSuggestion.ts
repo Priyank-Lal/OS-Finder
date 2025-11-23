@@ -1,7 +1,6 @@
-import { callAI } from "../gemini.client.js";
-import { sanitizeInput, tryParseJSON } from "../gemini.utils.js";
-
-const MAX_TASKS = 6;
+import { callAIStructured } from "../structured.client.js";
+import { TaskSuggestionsSchema } from "../schemas.js";
+import { sanitizeInput } from "../gemini.utils.js";
 
 export async function generateTaskSuggestions(
   context: any
@@ -45,47 +44,19 @@ PHASE3:${JSON.stringify(phase3)}
 ISSUE_SAMPLES:${JSON.stringify(issueSamples)}
 SCORES:${JSON.stringify(scores)}`;
 
-    const cleaned = await callAI(prompt, {
+    const result = await callAIStructured(prompt, TaskSuggestionsSchema, {
       model: "gemini-2.5-flash-lite",
       maxTokens: 800,
       temperature: 0.0,
       retries: 2,
-      timeoutMs: 30000,
     });
 
-    if (!cleaned) {
+    if (!result) {
       console.warn("AI returned empty response for task suggestions");
       return { beginner_tasks: [], intermediate_tasks: [] };
     }
 
-    const parsed = tryParseJSON(cleaned, {
-      beginner_tasks: [],
-      intermediate_tasks: [],
-    });
-
-    const normalizeTask = (t: any) => ({
-      title: String(t.title || "").trim(),
-      why: String(t.why || "").trim(),
-      approx_effort: String(t.approx_effort || "low").toLowerCase(),
-      example_issue_title: t.example_issue_title
-        ? String(t.example_issue_title).trim()
-        : "",
-    });
-
-    return {
-      beginner_tasks: Array.isArray(parsed.beginner_tasks)
-        ? parsed.beginner_tasks
-            .slice(0, MAX_TASKS)
-            .map(normalizeTask)
-            .filter((t) => t.title && t.why)
-        : [],
-      intermediate_tasks: Array.isArray(parsed.intermediate_tasks)
-        ? parsed.intermediate_tasks
-            .slice(0, MAX_TASKS)
-            .map(normalizeTask)
-            .filter((t) => t.title && t.why)
-        : [],
-    };
+    return result;
   } catch (err) {
     console.error("generateTaskSuggestions failed:", err);
     return { beginner_tasks: [], intermediate_tasks: [] };

@@ -162,80 +162,61 @@ const projectSchema = new Schema(
 
     // Simplified score breakdown (consistent structure)
     score_breakdown: {
-      beginner: {
-        documentation: { type: Number, default: 0 },
-        issue_labels: { type: Number, default: 0 },
-        community_response: { type: Number, default: 0 },
-        codebase_simplicity: { type: Number, default: 0 },
-      },
-      complexity: {
-        architecture: { type: Number, default: 0 },
-        dependencies: { type: Number, default: 0 },
-        domain_difficulty: { type: Number, default: 0 },
-      },
-      contribution: {
-        issue_quality: { type: Number, default: 0 },
-        pr_activity: { type: Number, default: 0 },
-        maintainer_engagement: { type: Number, default: 0 },
-      },
+      beginner: Map,
+      complexity: Map,
+      contribution: Map,
     },
 
     // ========== TASK SUGGESTIONS ==========
-    beginner_tasks: {
-      type: [
-        {
-          title: String,
-          why: String,
-          approx_effort: { type: String, enum: ["low", "medium", "high"] },
-          example_issue_title: String,
-        },
-      ],
-      default: [],
-    },
-    intermediate_tasks: {
-      type: [
-        {
-          title: String,
-          why: String,
-          approx_effort: { type: String, enum: ["low", "medium", "high"] },
-          example_issue_title: String,
-        },
-      ],
-      default: [],
-    },
+    beginner_tasks: [
+      {
+        title: String,
+        why: String,
+        approx_effort: String,
+        example_issue_title: String,
+      },
+    ],
+    intermediate_tasks: [
+      {
+        title: String,
+        why: String,
+        approx_effort: String,
+        example_issue_title: String,
+      },
+    ],
 
     // ========== LIGHTWEIGHT ISSUE SAMPLES ==========
-    issue_samples: {
-      type: [
-        {
-          title: String,
-          labels: [String],
-          created_at: String,
-          has_response: Boolean,
-        },
-      ],
-      default: [],
-    },
+    issue_samples: [
+      {
+        title: String,
+        labels: [String],
+        created_at: Date,
+        has_response: Boolean,
+      },
+    ],
 
     // ========== SUMMARIZATION TRACKING ==========
-    summarizedAt: { type: Date },
+    summarizedAt: Date,
     summarization_attempts: { type: Number, default: 0 },
     last_summarization_error: String,
     last_summarization_attempt: Date,
     // Label Analysis
-    all_labels: [
+    label_mapping: {
+      beginner: { labels: [String], count: Number },
+      bug: { labels: [String], count: Number },
+      help_wanted: { labels: [String], count: Number },
+      enhancement: { labels: [String], count: Number },
+      documentation: { labels: [String], count: Number },
+      testing: { labels: [String], count: Number },
+      performance: { labels: [String], count: Number },
+      security: { labels: [String], count: Number },
+    },
+    top_labels: [
       {
         name: String,
-        color: String,
-        description: String,
+        count: Number,
       },
     ],
-    label_mapping: {
-      beginner: [String],
-      bug: [String],
-      help_wanted: [String],
-      enhancement: [String],
-    },
   },
   {
     timestamps: true,

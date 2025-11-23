@@ -14,16 +14,29 @@ export async function fetchRepoLabels(repoUrl: string): Promise<Label[]> {
       throw new Error("Invalid repo URL");
     }
 
-    const response = await octokit.rest.issues.listLabelsForRepo({
+    const query = `
+      query($owner: String!, $name: String!) {
+        repository(owner: $owner, name: $name) {
+          labels(first: 100, orderBy: {field: NAME, direction: ASC}) {
+            nodes {
+              name
+              issues(states: OPEN) {
+                totalCount
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const response: any = await octokit.graphql(query, {
       owner,
-      repo: name,
-      per_page: 100, // Fetch up to 100 labels
+      name,
     });
 
-    return response.data.map((label: any) => ({
+    return response.repository.labels.nodes.map((label: any) => ({
       name: label.name,
-      color: label.color,
-      description: label.description || "",
+      count: label.issues.totalCount,
     }));
   } catch (error: any) {
     console.error(`Failed to fetch labels for ${repoUrl}:`, error.message);

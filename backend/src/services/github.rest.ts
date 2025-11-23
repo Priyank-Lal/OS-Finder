@@ -8,7 +8,6 @@ import {
   fetchCodeOfConduct,
   fetchFileTree,
   fetchContributing,
-  fetchIssueTemplates,
 } from "../utils/githuRest.utils.js";
 
 
@@ -27,7 +26,6 @@ export async function fetchAllCommunityFiles(repoIdentifier: string): Promise<{
   contributing: string | null;
   codeOfConduct: string | null;
   fileTree: any | null;
-  hasIssueTemplates: boolean;
 }> {
   const { owner, repo } = parseRepoIdentifier(repoIdentifier);
   const repoName = `${owner}/${repo}`;
@@ -35,13 +33,12 @@ export async function fetchAllCommunityFiles(repoIdentifier: string): Promise<{
   console.log(`\n📥 Fetching community files for ${repoName}...`);
 
   // Fetch all in parallel (queue handles rate limiting)
-  const [readme, contributing, codeOfConduct, fileTree, hasIssueTemplates] =
+  const [readme, contributing, codeOfConduct, fileTree] =
     await Promise.all([
       fetchReadme(repoIdentifier),
       fetchContributing(repoIdentifier),
       fetchCodeOfConduct(repoIdentifier),
       fetchFileTree(repoIdentifier),
-      fetchIssueTemplates(repoIdentifier),
     ]);
 
   console.log(`✅ Community files fetched for ${repoName}`);
@@ -49,14 +46,13 @@ export async function fetchAllCommunityFiles(repoIdentifier: string): Promise<{
   console.log(`   - CONTRIBUTING: ${contributing ? "✓" : "✗"}`);
   console.log(`   - CODE_OF_CONDUCT: ${codeOfConduct ? "✓" : "✗"}`);
   console.log(`   - File Tree: ${fileTree ? "✓" : "✗"}`);
-  console.log(`   - Issue Templates: ${hasIssueTemplates ? "✓" : "✗"}`);
+
 
   return {
     readme,
     contributing,
     codeOfConduct,
     fileTree,
-    hasIssueTemplates,
   };
 }
 

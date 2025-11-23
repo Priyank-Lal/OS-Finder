@@ -40,7 +40,6 @@ ${
 - Has Tests: ${metrics.hasTests}
 - Has CI: ${metrics.hasCI}
 - Is Monorepo: ${metrics.hasMonorepo}
-- Config Files: ${metrics.configFiles.length}
 - Build Complexity: ${metrics.buildComplexity}/10
 `
     : "No file tree data available"
@@ -56,9 +55,9 @@ ${
   repo.label_mapping
     ? `
 CUSTOM LABEL MAPPING (AI Analyzed):
-- Beginner: ${repo.label_mapping.beginner.join(", ") || "None"}
-- Bug: ${repo.label_mapping.bug.join(", ") || "None"}
-- Help Wanted: ${repo.label_mapping.help_wanted.join(", ") || "None"}
+- Beginner (${repo.label_mapping.beginner.count || repo.label_mapping.beginner.labels.length} total): ${repo.label_mapping.beginner.labels.join(", ") || "None"}
+- Bug (${repo.label_mapping.bug.count || repo.label_mapping.bug.labels.length} total): ${repo.label_mapping.bug.labels.join(", ") || "None"}
+- Help Wanted (${repo.label_mapping.help_wanted.count || repo.label_mapping.help_wanted.labels.length} total): ${repo.label_mapping.help_wanted.labels.join(", ") || "None"}
 `
     : ""
 }

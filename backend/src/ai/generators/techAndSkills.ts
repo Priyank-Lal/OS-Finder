@@ -1,16 +1,14 @@
-import { callAI } from "../gemini.client.js";
-import { ensureStringArray, safeSlice, sanitizeInput, tryParseJSON } from "../gemini.utils.js";
+import { callAIStructured } from "../structured.client.js";
+import { TechStackSchema } from "../schemas.js";
+import { ensureStringArray, safeSlice, sanitizeInput } from "../gemini.utils.js";
 
 // --- Phase 2: Tech stack & skills ---
 const MAX_README_LENGTH = 5000;
 const MAX_TOPICS = 20;
-const MAX_TECH_STACK = 10;
-const MAX_REQUIRED_SKILLS = 10;
-
 
 export async function generateTechAndSkills(context: {
   readme: string;
-  languages: string[]
+  languages: string[];
   topics?: string[];
 }): Promise<{ tech_stack: string[]; required_skills: string[] }> {
   try {
@@ -42,30 +40,21 @@ ${readme}
 TOPICS:
 ${JSON.stringify(topics)}`;
 
-    const cleaned = await callAI(prompt, {
+    const result = await callAIStructured(prompt, TechStackSchema, {
       model: "gemini-2.5-flash-lite",
       maxTokens: 600,
       temperature: 0.0,
       retries: 2,
-      timeoutMs: 30000,
     });
 
-    if (!cleaned) {
+    if (!result) {
       console.warn("AI returned empty response for tech and skills");
       return { tech_stack: [], required_skills: [] };
     }
 
-    const parsed = tryParseJSON(cleaned, {
-      tech_stack: [],
-      required_skills: [],
-    });
-
     return {
-      tech_stack: ensureStringArray(parsed.tech_stack).slice(0, MAX_TECH_STACK),
-      required_skills: ensureStringArray(parsed.required_skills).slice(
-        0,
-        MAX_REQUIRED_SKILLS
-      ),
+      tech_stack: result.tech_stack.slice(0, 10),
+      required_skills: result.required_skills.slice(0, 10),
     };
   } catch (err) {
     console.error("generateTechAndSkills failed:", err);

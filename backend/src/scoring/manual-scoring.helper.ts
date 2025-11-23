@@ -13,31 +13,39 @@ export function calculateDocumentationScore(repo: IProject, context: any): numbe
 }
 
 export function calculateIssueLabelsScore(repo: IProject): number {
-  const issueData = repo.issue_data || {};
-  const gfi = issueData.good_first_issue || 0;
-  const helpWanted = issueData.help_wanted || 0;
-  const beginner = issueData.beginner || 0;
-
-  // Check for mapped labels (AI Analysis)
+  // Use label_mapping as the source of truth
   const mapping = repo.label_mapping;
-  const hasMappedBeginner = mapping?.beginner && mapping.beginner.length > 0;
-  const hasMappedHelp = mapping?.help_wanted && mapping.help_wanted.length > 0;
+  
+  if (!mapping) {
+    // Fallback to old issue_data if label_mapping doesn't exist yet
+    const issueData = repo.issue_data || {};
+    const gfi = issueData.good_first_issue || 0;
+    const helpWanted = issueData.help_wanted || 0;
+    const beginner = issueData.beginner || 0;
+
+    let score = 0;
+    if (gfi > 0) score += 40;
+    if (gfi >= 5) score += 10;
+    if (helpWanted > 0) score += 25;
+    if (beginner > 0) score += 25;
+    return Math.min(score, 100);
+  }
+
+  // Use label_mapping counts
+  const beginnerCount = mapping.beginner?.count || 0;
+  const helpWantedCount = mapping.help_wanted?.count || 0;
 
   let score = 0;
   
-  // Priority 1: Standard GFI counts
-  if (gfi > 0) score += 40;
-  if (gfi >= 5) score += 10;
+  // Priority 1: Beginner-friendly labels
+  if (beginnerCount > 0) score += 40;
+  if (beginnerCount >= 5) score += 10;
   
-  // Priority 2: Mapped labels (if GFI is missing but we found custom labels)
-  if (score === 0 && hasMappedBeginner) {
-    score += 35; // Slightly less than confirmed GFI counts, but still good
-  }
+  // Priority 2: Help wanted
+  if (helpWantedCount > 0) score += 25;
 
-  if (helpWanted > 0) score += 25;
-  else if (hasMappedHelp) score += 20;
-
-  if (beginner > 0) score += 25;
+  // Bonus for having mapped labels
+  if (mapping.beginner.labels.length > 0) score += 25;
 
   return Math.min(score, 100);
 }
@@ -121,9 +129,9 @@ export function calculateDependenciesScore(repo: IProject, context: any): number
 
   let score = 30;
 
-  if (metrics.lockFiles.length > 0) score += 20;
-  if (metrics.lockFiles.length > 1) score += 15;
-  if (metrics.configFiles.length > 3) score += 20;
+  if (metrics.buildComplexity > 0) score += 20;
+  if (metrics.buildComplexity > 2) score += 15;
+  
   if (metrics.hasMonorepo) score += 15;
 
   return clamp(score, 0, 100);
@@ -157,12 +165,26 @@ export function calculateDomainScore(repo: IProject): number {
 
 export function calculateIssueQualityScore(repo: IProject): number {
   const issueData = repo.issue_data || {};
+  const mapping = repo.label_mapping;
+  
   const total = issueData.total_open || 0;
-  const labeled =
-    (issueData.good_first_issue || 0) +
-    (issueData.help_wanted || 0) +
-    (issueData.bug || 0) +
-    (issueData.enhancement || 0);
+  
+  // Calculate labeled count from label_mapping if available
+  let labeled = 0;
+  if (mapping) {
+    labeled = 
+      (mapping.beginner?.count || 0) +
+      (mapping.help_wanted?.count || 0) +
+      (mapping.bug?.count || 0) +
+      (mapping.enhancement?.count || 0);
+  } else {
+    // Fallback to old issue_data
+    labeled =
+      (issueData.good_first_issue || 0) +
+      (issueData.help_wanted || 0) +
+      (issueData.bug || 0) +
+      (issueData.enhancement || 0);
+  }
 
   if (total === 0) return 40; // Increased base score for empty issues
 

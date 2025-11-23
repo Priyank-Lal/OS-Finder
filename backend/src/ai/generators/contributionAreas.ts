@@ -1,17 +1,15 @@
 // --- Phase 3: Contribution areas ---
 
-import { callAI } from "../gemini.client.js";
+import { callAIStructured } from "../structured.client.js";
+import { ContributionAreasSchema } from "../schemas.js";
 import {
   ensureStringArray,
   safeSlice,
   sanitizeInput,
-  tryParseJSON,
 } from "../gemini.utils.js";
 
 const MAX_ISSUE_SAMPLES = 20;
 const MAX_CONTRIBUTING_LENGTH = 2000;
-const MAX_CONTRIB_AREAS = 6;
-const MAX_AREA_REASONS = 3;
 
 export async function generateContributionAreas(context: {
   issue_counts?: any;
@@ -69,39 +67,19 @@ PHASE1:${JSON.stringify(phase1)}
 PHASE2:${JSON.stringify(phase2)}
 CONTRIBUTING_MD_SNIPPET:${contributing}`;
 
-    const cleaned = await callAI(prompt, {
+    const result = await callAIStructured(prompt, ContributionAreasSchema, {
       model: "gemini-2.5-flash-lite",
       maxTokens: 600,
       temperature: 0.0,
       retries: 2,
-      timeoutMs: 30000,
     });
 
-    if (!cleaned) {
+    if (!result) {
       console.warn("AI returned empty response for contribution areas");
       return { main_contrib_areas: [] };
     }
 
-    const parsed = tryParseJSON(cleaned, { main_contrib_areas: [] });
-
-    const items = Array.isArray(parsed.main_contrib_areas)
-      ? parsed.main_contrib_areas
-      : [];
-
-    const normalized = items
-      .slice(0, MAX_CONTRIB_AREAS)
-      .map((it: any) => ({
-        area: String(it.area || "")
-          .toLowerCase()
-          .replace(/\s+/g, "-")
-          .replace(/[^a-z0-9\-]/g, "")
-          .slice(0, 50), // Prevent extremely long area names
-        confidence: Math.max(0, Math.min(1, Number(it.confidence || 0))),
-        reasons: ensureStringArray(it.reasons).slice(0, MAX_AREA_REASONS),
-      }))
-      .filter((item) => item.area); // Remove empty areas
-
-    return { main_contrib_areas: normalized };
+    return result;
   } catch (err) {
     console.error("generateContributionAreas failed:", err);
     return { main_contrib_areas: [] };

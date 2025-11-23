@@ -152,61 +152,116 @@ export async function fetchFileTree(
         recursive: "1", // This gets the entire tree
       });
 
-      // Filter by depth
-      const filteredTree = treeData.data.tree
-        .filter((item) => {
-          if (!item.path) return false;
-          const depth = item.path.split("/").length;
-          return depth <= maxDepth;
-        })
-        .map((item) => ({
-          name: item.path?.split("/").pop() || "",
-          path: item.path,
-          type: item.type === "tree" ? "tree" : "blob",
-        }));
+      let totalFiles = 0;
+      let totalDirectories = 0;
+      let totalDepth = 0;
+      let testFiles = 0;
+      let docFiles = 0;
+      let ciFiles = 0;
+      let configFiles: string[] = [];
+      let lockFiles: string[] = [];
+      let isMonorepo = false;
 
-      return { entries: filteredTree };
+      const rootLevelDirs = new Set<string>();
+
+      for (const item of treeData.data.tree) {
+        if (!item.path) continue;
+
+        const pathParts = item.path.split("/");
+        const depth = pathParts.length;
+        const fileName = pathParts[pathParts.length - 1].toLowerCase();
+
+        if (depth === 1 && item.type === "tree") {
+          rootLevelDirs.add(fileName);
+        }
+
+        if (item.type === "blob") {
+          totalFiles++;
+          totalDepth += depth;
+
+          if (
+            fileName.includes("test") ||
+            fileName.includes("spec") ||
+            fileName.endsWith(".test.js") ||
+            fileName.endsWith(".spec.js") ||
+            fileName.endsWith(".test.ts") ||
+            fileName.endsWith(".spec.ts") ||
+            fileName.endsWith(".test.jsx") ||
+            fileName.endsWith(".spec.jsx") ||
+            fileName.endsWith(".test.tsx") ||
+            fileName.endsWith(".spec.tsx")
+          ) {
+            testFiles++;
+          } else if (
+            item.path.startsWith("docs/") ||
+            item.path.startsWith(".github/docs/") ||
+            fileName.includes("readme") ||
+            fileName.includes("contributing") ||
+            fileName.includes("license")
+          ) {
+            docFiles++;
+          } else if (
+            item.path.startsWith(".github/workflows/") ||
+            fileName.includes("jenkinsfile") ||
+            fileName.includes("travis.yml") ||
+            fileName.includes("circle.yml") ||
+            fileName.includes("azure-pipelines.yml")
+          ) {
+            ciFiles++;
+          } else if (
+            fileName.endsWith("package.json") ||
+            fileName.endsWith("tsconfig.json") ||
+            fileName.endsWith("webpack.config.js") ||
+            fileName.endsWith("babel.config.js") ||
+            fileName.endsWith("pom.xml") ||
+            fileName.endsWith("build.gradle") ||
+            fileName.endsWith("Dockerfile") ||
+            fileName.endsWith("docker-compose.yml")
+          ) {
+            configFiles.push(item.path);
+          } else if (
+            fileName.endsWith("package-lock.json") ||
+            fileName.endsWith("yarn.lock") ||
+            fileName.endsWith("pnpm-lock.yaml") ||
+            fileName.endsWith("Gemfile.lock") ||
+            fileName.endsWith("composer.lock")
+          ) {
+            lockFiles.push(item.path);
+          }
+        } else if (item.type === "tree") {
+          totalDirectories++;
+        }
+      }
+
+      // Check for monorepo indicators (e.g., multiple package.json files at root level, or common monorepo tools)
+      const rootPackageJsons = configFiles.filter(
+        (p) => p.split("/").length === 2 && p.endsWith("package.json")
+      );
+      if (rootPackageJsons.length > 1) {
+        isMonorepo = true;
+      } else if (
+        rootLevelDirs.has("packages") ||
+        rootLevelDirs.has("apps") ||
+        rootLevelDirs.has("modules")
+      ) {
+        isMonorepo = true;
+      }
+
+      return {
+        totalFiles,
+        totalDirectories,
+        maxDepth, // This maxDepth is the input parameter, not the actual max depth found
+        avgDepth: totalFiles > 0 ? totalDepth / totalFiles : 0,
+        hasTests: testFiles > 0,
+        hasDocs: docFiles > 0,
+        hasCI: ciFiles > 0,
+        hasMonorepo: isMonorepo,
+        buildComplexity: configFiles.length * 0.5 + lockFiles.length * 1.0,
+        testToCodeRatio: totalFiles > 0 ? testFiles / totalFiles : 0,
+      };
     }
   );
 
   return result;
 }
 
-export async function fetchIssueTemplates(
-  repoIdentifier: string
-): Promise<boolean> {
-  const { owner, repo } = parseRepoIdentifier(repoIdentifier);
-
-  const result = await queuedRestCall(
-    "Issue Templates",
-    `${owner}/${repo}`,
-    async () => {
-      const paths = [
-        ".github/ISSUE_TEMPLATE",
-        ".github/ISSUE_TEMPLATE.md",
-        "ISSUE_TEMPLATE",
-        "ISSUE_TEMPLATE.md",
-      ];
-
-      for (const path of paths) {
-        try {
-          const response = await octokit2.repos.getContent({
-            owner,
-            repo,
-            path,
-          });
-
-          if (response.data) {
-            return true;
-          }
-        } catch (error: any) {
-          if (error.status !== 404) throw error;
-        }
-      }
-
-      return false;
-    }
-  );
-
-  return result || false;
-}
