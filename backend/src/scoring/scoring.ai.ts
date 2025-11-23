@@ -9,6 +9,7 @@ import {
   validateLevel,
 } from "./scoring.utils.js";
 import { AIScoreResponse, UnifiedScoreResult } from "./scoring.interface.js";
+import { callAI } from "../ai/gemini.client.js";
 
 export async function scoreWithAI(
   repo: IProject,
@@ -18,10 +19,6 @@ export async function scoreWithAI(
     fileTreeMetrics?: FileTreeMetrics;
   }
 ): Promise<UnifiedScoreResult | null> {
-  const client = new GoogleGenAI({
-    apiKey: _config.SCORING_AI_GEMINI_KEY,
-  });
-
   const repoContext = buildRepoContext(repo, context);
 
   const prompt = `You are an expert at evaluating open-source repositories for contributor friendliness.
@@ -86,20 +83,12 @@ SCORING GUIDELINES:
   * advanced: TC > 70 OR BF < 30
   * intermediate: everything else`;
 
-  const response = await client.models.generateContent({
+  const cleaned = await callAI(prompt, {
     model: "gemini-2.5-flash-lite",
-    contents: prompt,
-    maxOutputTokens: 1200,
+    maxTokens: 1200,
     temperature: 0.1,
-  } as any);
-
-  const text = response?.text || "";
-  const cleaned =
-    text
-      .replace(/```json/gi, "")
-      .replace(/```/g, "")
-      .trim()
-      .match(/\{[\s\S]*\}/)?.[0] || "{}";
+    task: "scoring",
+  });
 
   let parsed: AIScoreResponse;
   try {

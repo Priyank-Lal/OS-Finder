@@ -54,6 +54,7 @@ export const generateSuitabilityEvaluation = async (data: {
   const result = await callAIStructured(prompt, SuitabilitySchema, {
     model: "gemini-2.0-flash",
     temperature: 0.0,
+    task: "suitability",
   });
 
   if (!result) {

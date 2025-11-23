@@ -45,6 +45,7 @@ ${JSON.stringify(topics)}`;
       maxTokens: 600,
       temperature: 0.0,
       retries: 2,
+      task: "tech_skills",
     });
 
     if (!result) {

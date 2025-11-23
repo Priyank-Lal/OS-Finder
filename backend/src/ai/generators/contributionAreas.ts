@@ -72,6 +72,7 @@ CONTRIBUTING_MD_SNIPPET:${contributing}`;
       maxTokens: 600,
       temperature: 0.0,
       retries: 2,
+      task: "contribution_areas",
     });
 
     if (!result) {

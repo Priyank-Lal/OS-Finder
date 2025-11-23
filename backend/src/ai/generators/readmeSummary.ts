@@ -73,6 +73,7 @@ ${metaStr}`;
       maxTokens: 900,
       temperature: 0.0,
       retries: 2,
+      task: "readme_summary",
     });
 
     if (!result) {

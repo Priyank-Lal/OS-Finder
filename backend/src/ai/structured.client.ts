@@ -1,5 +1,5 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { getNextKey, markKeyAsRateLimited } from "./gemini.client.js";
+import { getKeyForTask, markKeyAsRateLimited, AITask } from "./gemini.client.js";
 import { z } from "zod";
 
 /**
@@ -14,15 +14,17 @@ export async function callAIStructured<T extends z.ZodType>(
     maxTokens?: number;
     temperature?: number;
     retries?: number;
+    task?: AITask; // Added task parameter
   }
 ): Promise<z.infer<T> | null> {
   const modelName = opts?.model || "gemini-2.0-flash";
   const maxTokens = opts?.maxTokens ?? 800;
   const temperature = opts?.temperature ?? 0.0;
   const retries = opts?.retries ?? 2;
+  const task = opts?.task || "generic";
 
   for (let attempt = 0; attempt <= retries; attempt++) {
-    const key = getNextKey();
+    const key = getKeyForTask(task);
 
     try {
       const model = new ChatGoogleGenerativeAI({
@@ -46,7 +48,7 @@ export async function callAIStructured<T extends z.ZodType>(
         errorMessage.includes("RESOURCE_EXHAUSTED");
 
       console.error(
-        `AI structured call failed (attempt ${attempt + 1}/${retries + 1}):`,
+        `AI structured call failed (task: ${task}, attempt ${attempt + 1}/${retries + 1}):`,
         errorMessage
       );
 

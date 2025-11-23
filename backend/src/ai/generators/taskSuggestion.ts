@@ -49,6 +49,7 @@ SCORES:${JSON.stringify(scores)}`;
       maxTokens: 800,
       temperature: 0.0,
       retries: 2,
+      task: "task_suggestion",
     });
 
     if (!result) {
