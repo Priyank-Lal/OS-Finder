@@ -90,19 +90,92 @@ export const getReposFromDb = async (req: Request, res: Response) => {
 
     const filter: any = {};
 
+    const andConditions: any[] = [];
+
     if (lang) filter.language = { $regex: new RegExp(`^${lang}$`, "i") };
 
     if (topic) filter.topics = { $regex: new RegExp(String(topic), "i") };
 
-    if (category)
-      filter.ai_categories = { $regex: new RegExp(String(category), "i") };
+    // Category Filter (Checks both AI categories AND GitHub topics)
+    if (category) {
+      const catRegex = new RegExp(String(category), "i");
+      andConditions.push({
+        $or: [
+          { categories: catRegex },
+          { topics: catRegex }
+        ]
+      });
+    }
+
+    if (req.query.level) {
+      filter.recommended_level = { $regex: new RegExp(String(req.query.level), "i") };
+    }
+
+    // Search Filter
+    if (req.query.search) {
+      const searchRegex = new RegExp(String(req.query.search), "i");
+      andConditions.push({
+        $or: [
+          { repo_name: searchRegex },
+          { description: searchRegex },
+          { topics: searchRegex },
+          { summary: searchRegex },
+        ]
+      });
+    }
+
+    // Apply AND conditions if any
+    if (andConditions.length > 0) {
+      filter.$and = andConditions;
+    }
+
+    // Advanced Filters
+    if (req.query.minStars) {
+      filter.stars = { $gte: parseInt(String(req.query.minStars)) };
+    }
+
+    if (req.query.maxIssues) {
+      filter["issue_data.total_open"] = { $lte: parseInt(String(req.query.maxIssues)) };
+    }
+
+    if (req.query.minScore) {
+      filter.overall_score = { $gte: parseInt(String(req.query.minScore)) };
+    }
+
+    if (req.query.prMergeTime) {
+      const time = String(req.query.prMergeTime);
+      if (time === "fast") {
+        filter["activity.avg_pr_merge_hours"] = { $lt: 24 };
+      } else if (time === "medium") {
+        filter["activity.avg_pr_merge_hours"] = { $gte: 24, $lte: 72 };
+      } else if (time === "slow") {
+        filter["activity.avg_pr_merge_hours"] = { $gt: 72 };
+      }
+    }
 
     // Exclude rejected repos
     filter.status = { $ne: "rejected" };
 
     const skip = (safePage - 1) * safeLimit;
 
+    // Sorting Logic
+    let sort: any = { overall_score: -1 }; // Default sort
+    const sortBy = String(req.query.sortBy || "relevance");
+
+    if (sortBy === "stars") {
+      sort = { stars: -1 };
+    } else if (sortBy === "friendliness") {
+      sort = { beginner_friendliness: -1 };
+    } else if (sortBy === "maintenance") {
+      sort = { "activity.maintainer_activity_score": -1 };
+    } else if (sortBy === "complexity") {
+      sort = { technical_complexity: 1 }; // Ascending for complexity (lower is better for beginners)
+    } else if (sortBy === "relevance") {
+      sort = { overall_score: -1 };
+    }
+
     const repos = await Project.find(filter)
+      .sort(sort)
       .skip(skip)
       .limit(safeLimit)
       .lean()

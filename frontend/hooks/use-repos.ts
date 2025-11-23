@@ -12,6 +12,10 @@ interface UseReposParams {
   level?: string;
   sortBy?: string;
   search?: string;
+  minStars?: number;
+  maxIssues?: number;
+  minScore?: number;
+  prMergeTime?: string;
 }
 
 export function useRepos({
@@ -22,9 +26,13 @@ export function useRepos({
   level = "",
   sortBy = "stars",
   search = "",
+  minStars,
+  maxIssues,
+  minScore,
+  prMergeTime,
 }: UseReposParams = {}) {
   return useQuery({
-    queryKey: ["repos", { lang, page, category, topic, level, sortBy, search }],
+    queryKey: ["repos", { lang, page, category, topic, level, sortBy, search, minStars, maxIssues, minScore, prMergeTime }],
     queryFn: async () => {
       const queryParams = buildRepoQueryParams({
         lang,
@@ -34,6 +42,10 @@ export function useRepos({
         level,
         sortBy,
         search,
+        minStars,
+        maxIssues,
+        minScore,
+        prMergeTime,
       });
 
       const response = await getRepos(queryParams);

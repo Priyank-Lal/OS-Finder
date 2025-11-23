@@ -136,7 +136,7 @@ export default function RepoDetailPage({
             )}
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-3xl font-bold tracking-tight">
+                <h1 className="text-3xl font-bold tracking-tight break-words">
                   {repo.owner} /{" "}
                   <span className="text-primary">{repo.repo_name}</span>
                 </h1>
@@ -375,7 +375,7 @@ export default function RepoDetailPage({
           </div>
 
           {/* Right Column (Sticky Sidebar) - Span 4 */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-24 lg:h-fit">
             {/* Scores Card */}
             <Card className="border-primary/20 shadow-sm">
               <CardHeader className="pb-4">

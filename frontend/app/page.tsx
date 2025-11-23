@@ -20,6 +20,12 @@ export default function HomePage() {
   const [sortBy, setSortBy] = useState("stars");
   const [page, setPage] = useState(1);
 
+  // Advanced filters
+  const [minStars, setMinStars] = useState(0);
+  const [maxIssues, setMaxIssues] = useState<number | null>(null);
+  const [minScore, setMinScore] = useState(0);
+  const [prMergeTime, setPrMergeTime] = useState("all");
+
   const debouncedSearch = useDebounce(searchQuery, 400);
 
   useEffect(() => {
@@ -29,7 +35,12 @@ export default function HomePage() {
     selectedDifficulty,
     selectedCategory,
     sortBy,
+    sortBy,
     searchQuery,
+    minStars,
+    maxIssues,
+    minScore,
+    prMergeTime,
   ]);
   const queryResult = useRepos({
     lang: selectedLanguage === "all" ? "" : selectedLanguage,
@@ -38,6 +49,10 @@ export default function HomePage() {
     level: selectedDifficulty === "all" ? "" : selectedDifficulty,
     sortBy,
     search: debouncedSearch,
+    minStars,
+    maxIssues: maxIssues || undefined,
+    minScore,
+    prMergeTime,
   });
   const { data: reposData, isLoading, isError, error } = queryResult;
 
@@ -76,6 +91,14 @@ export default function HomePage() {
           setSelectedCategory={setSelectedCategory}
           sortBy={sortBy}
           setSortBy={setSortBy}
+          minStars={minStars}
+          setMinStars={setMinStars}
+          maxIssues={maxIssues}
+          setMaxIssues={setMaxIssues}
+          minScore={minScore}
+          setMinScore={setMinScore}
+          prMergeTime={prMergeTime}
+          setPrMergeTime={setPrMergeTime}
         />
 
         {/* Repos Grid */}
