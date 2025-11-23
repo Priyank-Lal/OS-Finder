@@ -11,11 +11,12 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
     let cursor: string | null = null;
     let hasNextPage = true;
     let loopCount = 0;
-    const MAX_LOOPS = 1;
+    const MAX_LOOPS = 40; // Fetch up to 40 pages (40 * 25 = 1000 max potential)
 
     console.log(`Starting fetch for ${lang} (minStars: ${minStars})...`);
 
-    while (hasNextPage && loopCount < MAX_LOOPS && allFiltered.length < 80) {
+    // Target 750 repos (leaving buffer for filtering)
+    while (hasNextPage && loopCount < MAX_LOOPS && allFiltered.length < 750) {
       loopCount++;
       console.log(`--- Fetch Loop ${loopCount} (Cursor: ${cursor}) ---`);
 
@@ -66,8 +67,8 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
       // Small delay to be nice to API
       await new Promise(r => setTimeout(r, 2000));
 
-      // Rate limiting: Pause for 60s every 2 loops to prevent 502s
-      if (loopCount % 2 === 0) {
+      // Rate limiting: Pause for 60s every 10 loops (approx 250 repos)
+      if (loopCount % 10 === 0) {
         console.log(`\n--- Pausing for 60s to cool down GitHub API (Loop ${loopCount}) ---\n`);
         await new Promise(r => setTimeout(r, 60000));
       }

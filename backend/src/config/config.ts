@@ -51,12 +51,15 @@ export const _config = {
   GITHUB_TOKEN_3: process.env.GITHUB_TOKEN_3 || "",
   GITHUB_LABEL_TOKEN: process.env.GITHUB_LABEL_TOKEN || "",
 
-
   MONGODB_URI: process.env.MONGODB_URI || "",
-  GEMINI_KEYS: process.env.GEMINI_KEYS || "",
-  SCORING_AI_GEMINI_KEY: process.env.SCORING_AI_GEMINI_KEY || "",
-  SUITABILITY_AI_GEMINI_KEY: process.env.SUITABILITY_AI_GEMINI_KEY || "",
-  AGENT_API_KEY: process.env.AGENT_API_KEY || "",
+  LABEL_ANALYSIS_API_KEYS: process.env.LABEL_ANALYSIS_API_KEYS || "",
+  CONTRIBUTION_AREAS_API_KEYS: process.env.CONTRIBUTION_AREAS_API_KEYS || "",
+  README_SUMMARY_API_KEYS: process.env.README_SUMMARY_API_KEYS || "",
+  TASK_SUGGESTION_API_KEYS: process.env.TASK_SUGGESTION_API_KEYS || "",
+  TECH_AND_SKILLS_API_KEYS: process.env.TECH_AND_SKILLS_API_KEYS || "",
+  SUITABILITY_AI_API_KEYS: process.env.SUITABILITY_AI_API_KEYS || "",
+  FALLBACK_API_KEYS: process.env.FALLBACK_API_KEYS || "",
+  SCORING_AI_API_KEYS: process.env.SCORING_AI_API_KEYS || "",
 
   // Optional
   NODE_ENV: process.env.NODE_ENV || "development",
@@ -75,18 +78,4 @@ console.log(`  - Environment: ${_config.NODE_ENV}`);
 console.log(`  - Port: ${_config.PORT}`);
 console.log(
   `  - GitHub Token: ${_config.GITHUB_TOKEN ? "✓ Set" : "✗ Missing"}`
-);
-console.log(`  - MongoDB URI: ${_config.MONGODB_URI ? "✓ Set" : "✗ Missing"}`);
-console.log(
-  `  - Gemini Keys: ${
-    _config.GEMINI_KEYS
-      ? `✓ ${_config.GEMINI_KEYS.split(",").length} keys`
-      : "✗ Missing"
-  }`
-);
-console.log(
-  `  - AI Analysis: ${_config.ENABLE_AI_ANALYSIS ? "Enabled" : "Disabled"}`
-);
-console.log(
-  `  - Rate Limiting: ${_config.ENABLE_RATE_LIMITING ? "Enabled" : "Disabled"}`
 );

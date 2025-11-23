@@ -42,7 +42,7 @@ export const ScoringSchema = z.object({
 // Contribution Areas Schema
 export const ContributionAreaSchema = z.object({
   area: z.string().min(1).max(50).regex(/^[a-z0-9-]+$/).describe("Short hyphenated area name (e.g., 'frontend-components')"),
-  confidence: z.number().min(0).max(1).multipleOf(0.01).describe("Confidence in this area (0-1, 2 decimal places)"),
+  confidence: z.number().min(0).max(1).describe("Confidence in this area (0-1)"),
   reasons: z.array(z.string().min(5).max(200)).min(1).max(3).describe("1-3 concrete reasons supporting this area"),
 });
 

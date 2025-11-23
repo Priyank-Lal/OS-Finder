@@ -77,7 +77,7 @@ export async function generateLabelAnalysis(
   `;
 
   const result = await callAIStructured(prompt, LabelMappingSchema, {
-    model: "gemini-2.0-flash-lite",
+    model: "gemini-2.5-flash-lite",
     temperature: 0.0,
     task: "label_analysis",
   });

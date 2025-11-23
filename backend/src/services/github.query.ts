@@ -234,6 +234,7 @@ const query = `query ($search: String!, $count: Int!, $cursor: String) {
 
 const tokens = [
   _config.GITHUB_TOKEN,
+  _config.GITHUB_TOKEN_2,
   _config.GITHUB_TOKEN_3,
 ].filter(Boolean);
 
@@ -261,7 +262,7 @@ export async function safeGithubQuery(
   const searchQuery = `language:${metadata?.lang} stars:>${metadata?.minStars} fork:false archived:false pushed:>=${dateString}`;
   const variables = {
     search: searchQuery,
-    count: 5,
+    count: 25, // Increased from 5 to 25 for faster discovery
     cursor: metadata?.cursor || null,
   };
 
