@@ -53,6 +53,6 @@ async function runRepoSync() {
 }
 
 // Run every 12 hours
-cron.schedule("0 */12 * * *", runRepoSync);
+// cron.schedule("0 */12 * * *", runRepoSync);
 
-console.log("Repo sync cron scheduled (every 12 hours)");
+console.log("Repo sync cron PAUSED");
