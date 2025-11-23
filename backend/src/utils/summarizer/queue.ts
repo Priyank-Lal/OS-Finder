@@ -15,18 +15,20 @@ const apiKeyCount = [
   .flatMap((keys) => keys.split(","))
   .filter(Boolean).length;
 
-export const AI_CALLS_PER_REPO = 5;
-export const SAFE_RPM_PER_KEY = 12;
-export const TOTAL_SAFE_RPM = apiKeyCount || 16 * SAFE_RPM_PER_KEY;
-export const BATCH_LIMIT = 60;
+export const AI_CALLS_PER_REPO = 7; // Updated to reflect actual calls
+export const SAFE_RPM_PER_KEY = 10; // Reduced from 12 for safety
+export const TOTAL_SAFE_RPM = (apiKeyCount || 16) * SAFE_RPM_PER_KEY;
+export const BATCH_LIMIT = 30; // Reduced from 60 for stability
 export const MAX_RETRY_ATTEMPTS = 3;
 
 export const aiQueue = new PQueue({
-  concurrency: Math.max(2, Math.floor(apiKeyCount * 2)), // 2 concurrent calls per key
-  interval: 60000, // 1 minute window
-  intervalCap: TOTAL_SAFE_RPM, // Total calls per minute
+  concurrency: Math.max(2, Math.floor(apiKeyCount * 1.5)), // Reduced concurrency
+  interval: 60000 * 2, // 2 minute window (very safe)
+  intervalCap: TOTAL_SAFE_RPM,
 });
 
 export const repoQueue = new PQueue({
-  concurrency: Math.min(10, apiKeyCount * 2), // More repos can process in parallel
+  concurrency: 3, // Very conservative repo concurrency
+  interval: 5000, // 5s gap between repo starts
+  intervalCap: 1,
 });

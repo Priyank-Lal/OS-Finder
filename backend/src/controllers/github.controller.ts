@@ -64,13 +64,14 @@ export const fetchRepos = async (lang: string, minStars: number = 100) => {
         console.log("No more pages from GitHub.");
       }
       
-      // Small delay to be nice to API
-      await new Promise(r => setTimeout(r, 2000));
+      // Rate limiting: Pause for 25s between every page to be very gentle
+      await new Promise(r => setTimeout(r, 25000));
 
-      // Rate limiting: Pause for 60s every 10 loops (approx 250 repos)
-      if (loopCount % 10 === 0) {
-        console.log(`\n--- Pausing for 60s to cool down GitHub API (Loop ${loopCount}) ---\n`);
-        await new Promise(r => setTimeout(r, 60000));
+      // Long Pause: Pause for 90s every 4 loops (approx 100 repos)
+      // This ensures we never hit the complexity limit
+      if (loopCount % 4 === 0) {
+        console.log(`\n--- Pausing for 90s to cool down GitHub API (Loop ${loopCount}) ---\n`);
+        await new Promise(r => setTimeout(r, 90000));
       }
     }
 

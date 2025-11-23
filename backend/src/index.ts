@@ -3,6 +3,7 @@ import { config } from "dotenv";
 import { connectDB } from "./db/db.js";
 import "./scheduler/summarizer.cron.js"
 import "./scheduler/repos.cron.js";
+import "./scheduler/discovery.cron.js";
 
 
 config();

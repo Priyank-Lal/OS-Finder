@@ -1,19 +1,16 @@
 import cron from "node-cron";
 import { fetchRepos } from "../controllers/github.controller.js";
 import { Project } from "../models/project.model.js";
+import { SchedulerLock } from "./scheduler.lock.js";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-let isRunning = false;
-
 async function runRepoSync() {
-  // Simple check to prevent overlap
-  if (isRunning) {
-    console.log("Repo sync already running, skipping");
+  // Try to acquire global lock
+  if (!(await SchedulerLock.acquire("Repo Sync"))) {
     return;
   }
 
-  isRunning = true;
   console.log("\n=== Repo Sync Started ===");
   console.log("Time:", new Date().toISOString());
 
@@ -51,7 +48,7 @@ async function runRepoSync() {
   } catch (err: any) {
     console.error("Repo sync error:", err.message);
   } finally {
-    isRunning = false;
+    SchedulerLock.release();
   }
 }
 
