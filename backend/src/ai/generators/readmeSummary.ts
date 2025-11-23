@@ -35,14 +35,32 @@ OUTPUT_SCHEMA:
 {
   "summary": "<short 6-7 sentence summary describing the project purpose and where contributors are most useful>",
   "level": "beginner" | "intermediate" | "advanced",
-  "repo_categories": ["<category>", "...", ...] backend, ml-library, api-wrapper, testing, documentation, database-tool, security, devops, mobile, utility,etc.
+  "repo_categories": ["<category>", "...", ...]
 }
+
+ALLOWED CATEGORIES (Choose which suit the repo):
+- web-frontend (React, Vue, UI components)
+- web-backend (API, server, database tools)
+- mobile (iOS, Android, React Native)
+- desktop (Electron, Tauri, native apps)
+- cli (Command line tools, scripts)
+- library (General purpose libraries, SDKs)
+- framework (Full frameworks)
+- devops (CI/CD, docker, k8s, cloud)
+- security (Auth, cryptography, pentesting)
+- machine-learning (AI, models, data science)
+- blockchain (Web3, crypto, smart contracts)
+- game-dev (Engines, mods, tools)
+- embedded (IoT, firmware, hardware)
+- compiler (Parsers, interpreters, languages)
+- utility (Helper tools, productivity)
+- education (Tutorials, learning resources - ONLY if it's a tool for learning)
+- OR Invent new category if needed
 
 RULES:
 - summary: maximum 100-120 words, present tense. Focus on what the project does and 1-2 sentence about likely contribution areas.
-- level: choose the *single* best label using README + metadata (see below). Use 'beginner' only when the repo actively shows onboarding signals (CONTRIBUTING, many good-first issues, small modules); 'advanced' only when deep infra/domain knowledge or multi-repo architecture is required.
-- repo_categories: 0–3 coarse tags drawn only from the allowed list. Use hyphenated lowercase tokens.
-- if categories not present in the given options, create a new one.
+- level: choose the *single* best label using README + metadata.
+- repo_categories: Choose categories from the ALLOWED CATEGORIES list above. Invent new categories unless necessary.
 - Use metadata as supporting signals but do not repeat metadata in summary.
 
 README:

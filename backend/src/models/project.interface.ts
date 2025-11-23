@@ -134,4 +134,21 @@ export interface IProject extends Document {
 
   createdAt: Date;
   updatedAt: Date;
+
+  // Label Analysis
+  all_labels?: Label[];
+  label_mapping?: LabelMapping;
+}
+
+export interface Label {
+  name: string;
+  color: string;
+  description?: string;
+}
+
+export interface LabelMapping {
+  beginner: string[];
+  bug: string[];
+  help_wanted: string[];
+  enhancement: string[];
 }

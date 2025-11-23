@@ -133,6 +133,16 @@ export async function summarizeRepo(repo: any): Promise<void> {
       return; 
     }
 
+    // ========== STEP 2.7: LABEL ANALYSIS ==========
+    console.log(`Analyzing labels for ${repoName}...`);
+    const { fetchRepoLabels } = await import("../../services/github.labels.js");
+    const { generateLabelAnalysis } = await import("../../ai/index.js");
+
+    const allLabels = await fetchRepoLabels(repo.repo_url);
+    const labelMapping = await generateLabelAnalysis(allLabels, repo.issue_samples || []);
+
+    console.log(`Mapped labels for ${repoName}:`, labelMapping);
+
     // ========== STEP 3: AI METADATA GENERATION ==========
     console.log(`Generating metadata for ${repoName}...`);
 
@@ -200,6 +210,8 @@ export async function summarizeRepo(repo: any): Promise<void> {
       categories: phase1.repo_categories || [],
       file_tree_metrics: fileTreeMetrics,
       community_health: communityHealth,
+      all_labels: allLabels,
+      label_mapping: labelMapping,
     };
     
 
@@ -248,6 +260,8 @@ export async function summarizeRepo(repo: any): Promise<void> {
           status: "active",
           file_tree_metrics: fileTreeMetrics,
           community_health: communityHealth,
+          all_labels: allLabels,
+          label_mapping: labelMapping,
 
           // AI-generated content
           summary: phase1.summary || "",

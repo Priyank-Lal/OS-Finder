@@ -222,6 +222,20 @@ const projectSchema = new Schema(
     summarization_attempts: { type: Number, default: 0 },
     last_summarization_error: String,
     last_summarization_attempt: Date,
+    // Label Analysis
+    all_labels: [
+      {
+        name: String,
+        color: String,
+        description: String,
+      },
+    ],
+    label_mapping: {
+      beginner: [String],
+      bug: [String],
+      help_wanted: [String],
+      enhancement: [String],
+    },
   },
   {
     timestamps: true,

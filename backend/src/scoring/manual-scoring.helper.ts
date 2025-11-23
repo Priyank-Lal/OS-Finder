@@ -18,10 +18,25 @@ export function calculateIssueLabelsScore(repo: IProject): number {
   const helpWanted = issueData.help_wanted || 0;
   const beginner = issueData.beginner || 0;
 
+  // Check for mapped labels (AI Analysis)
+  const mapping = repo.label_mapping;
+  const hasMappedBeginner = mapping?.beginner && mapping.beginner.length > 0;
+  const hasMappedHelp = mapping?.help_wanted && mapping.help_wanted.length > 0;
+
   let score = 0;
+  
+  // Priority 1: Standard GFI counts
   if (gfi > 0) score += 40;
   if (gfi >= 5) score += 10;
+  
+  // Priority 2: Mapped labels (if GFI is missing but we found custom labels)
+  if (score === 0 && hasMappedBeginner) {
+    score += 35; // Slightly less than confirmed GFI counts, but still good
+  }
+
   if (helpWanted > 0) score += 25;
+  else if (hasMappedHelp) score += 20;
+
   if (beginner > 0) score += 25;
 
   return Math.min(score, 100);
@@ -58,11 +73,11 @@ export function calculateSimplicityScore(repo: IProject, context: any): number {
 
   let score = 100;
 
-  // File count penalty
-  if (files > 500) score -= 60;
-  else if (files > 200) score -= 40;
-  else if (files > 100) score -= 20;
-  else if (files > 50) score -= 10;
+  // File count penalty (Relaxed for modern repos)
+  if (files > 5000) score -= 60;
+  else if (files > 2000) score -= 40;
+  else if (files > 1000) score -= 20;
+  else if (files > 500) score -= 10;
 
   // Depth penalty
   if (depth > 7) score -= 30;
@@ -160,7 +175,7 @@ export function calculateIssueQualityScore(repo: IProject): number {
   else if (total > 100) score += 10;
   else score += 5;
 
-  return clamp(Math.round(score) + 20, 0, 100); // Boost score
+  return clamp(Math.round(score), 0, 100);
 }
 
 export function calculatePRActivityScore(repo: IProject): number {
@@ -182,6 +197,5 @@ export function calculateEngagementScore(repo: IProject): number {
   const activity = (repo as any).activity || {};
   const maintainerActivity = activity.maintainer_activity_score || 0;
 
-  // Boost engagement score since we don't have full data yet
-  return Math.min(Math.round(maintainerActivity * 100) + 20, 100);
+  return Math.min(Math.round(maintainerActivity * 100), 100);
 }

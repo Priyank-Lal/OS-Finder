@@ -29,7 +29,8 @@ export const generateSuitabilityEvaluation = async (data: {
        - **Learning/Homework**: "my-first-project", "algorithms-practice", "leetcode-solutions", "course-assignments".
        - **Lists/Collections**: "awesome-xyz", "resources-list", "books-collection".
        - **Docs/Reference**: Style guides, cheat sheets, pure documentation.
-       - **Personal**: Dotfiles, resumes, portfolios, blogs.
+       - **Personal/Config**: Dotfiles, resumes, portfolios, blogs, system config.
+       - **Data-only**: Datasets, JSON lists, static assets without tools.
        - **Empty/Abandoned**: No code, just a README.
 
     If a repo is a real software project but very advanced (e.g. PyTorch, Kubernetes), you MUST ACCEPT it.

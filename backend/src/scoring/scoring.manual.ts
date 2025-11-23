@@ -61,7 +61,7 @@ export function scoreWithRules(
 
   // Determine level
   let level: "beginner" | "intermediate" | "advanced";
-  if (beginnerFriendliness >= 70 && technicalComplexity <= 40) {
+  if (beginnerFriendliness >= 70 && technicalComplexity <= 40 && contributionReadiness >= 50) {
     level = "beginner";
   } else if (technicalComplexity >= 70 || beginnerFriendliness <= 30) {
     level = "advanced";

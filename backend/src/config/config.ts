@@ -49,6 +49,8 @@ export const _config = {
   GITHUB_TOKEN: process.env.GITHUB_TOKEN || "",
   GITHUB_TOKEN_2: process.env.GITHUB_TOKEN_2 || "",
   GITHUB_TOKEN_3: process.env.GITHUB_TOKEN_3 || "",
+  GITHUB_LABEL_TOKEN: process.env.GITHUB_LABEL_TOKEN || "",
+
 
   MONGODB_URI: process.env.MONGODB_URI || "",
   GEMINI_KEYS: process.env.GEMINI_KEYS || "",

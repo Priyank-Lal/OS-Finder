@@ -128,3 +128,5 @@ export async function processSummaries(): Promise<void> {
     throw error;
   }
 }
+
+processSummaries()

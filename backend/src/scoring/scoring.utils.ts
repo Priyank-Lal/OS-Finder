@@ -52,6 +52,16 @@ ISSUES:
 - Help Wanted: ${issueData.help_wanted || 0}
 - Bug: ${issueData.bug || 0}
 - Enhancement: ${issueData.enhancement || 0}
+${
+  repo.label_mapping
+    ? `
+CUSTOM LABEL MAPPING (AI Analyzed):
+- Beginner: ${repo.label_mapping.beginner.join(", ") || "None"}
+- Bug: ${repo.label_mapping.bug.join(", ") || "None"}
+- Help Wanted: ${repo.label_mapping.help_wanted.join(", ") || "None"}
+`
+    : ""
+}
 
 ACTIVITY:
 - PR Merge Ratio: ${(activity.pr_merge_ratio || 0).toFixed(2)}

@@ -121,6 +121,7 @@ const query = `query ($search: String!, $count: Int!, $cursor: String) {
 
         owner {
           login
+          avatarUrl
         }
 
         primaryLanguage {
@@ -179,7 +180,15 @@ const query = `query ($search: String!, $count: Int!, $cursor: String) {
         issues(states: OPEN) { totalCount }
 
         goodFirstIssues: issues(
-          labels: ["good first issue", "good-first-issue"]
+          labels: [
+            "good first issue", 
+            "good-first-issue", 
+            "easy", 
+            "starter", 
+            "beginner", 
+            "E-easy", 
+            "level:starter"
+          ]
           states: OPEN
         ) { totalCount }
 
@@ -189,29 +198,37 @@ const query = `query ($search: String!, $count: Int!, $cursor: String) {
         ) { totalCount }
 
         # Removed expensive specific issue counts to prevent 502s
-        # firstTimers, beginnerIssues, refactorIssues, highPriorityIssues removed
-
-        bugIssues: issues(labels: ["bug", "Bug"], states: OPEN) { totalCount }
-
-        enhancementIssues: issues(labels: ["enhancement"], states: OPEN) { totalCount }
-
-        documentationIssues: issues(labels: ["documentation"], states: OPEN) { totalCount }
+        # firstTimers, beginnerIssues, refactorIssues, highPriorityIssues, bugIssues, enhancementIssues, documentationIssues removed
 
         # Pull request activity — REMOVE comments (heavy)
         openPRs: pullRequests(states: OPEN) {
           totalCount
         }
 
+        # Recent PRs for ratio calculation (Open vs Merged vs Closed)
         recentPRs: pullRequests(
           states: [OPEN, MERGED, CLOSED]
-          first: 3
+          first: 15
           orderBy: { field: CREATED_AT, direction: DESC }
         ) {
           nodes {
             createdAt
             mergedAt
+            state
           }
           totalCount
+        }
+
+        # Dedicated Merged PRs for accurate time calculation
+        mergedPRs: pullRequests(
+          states: MERGED
+          first: 5
+          orderBy: { field: UPDATED_AT, direction: DESC }
+        ) {
+          nodes {
+            createdAt
+            mergedAt
+          }
         }
 
         # Contributors count (cheap)
@@ -252,7 +269,7 @@ export async function safeGithubQuery(
   const searchQuery = `language:${metadata?.lang} stars:>${metadata?.minStars} fork:false archived:false pushed:>=${dateString}`;
   const variables = {
     search: searchQuery,
-    count: 10,
+    count: 5,
     cursor: metadata?.cursor || null,
   };
 

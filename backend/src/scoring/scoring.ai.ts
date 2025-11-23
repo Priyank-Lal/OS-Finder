@@ -138,7 +138,19 @@ SCORING GUIDELINES:
       100
     ),
     overall_score: clamp(Math.round(overall), 0, 100),
-    recommended_level: validateLevel(parsed.recommended_level),
+    recommended_level: (() => {
+      const bf = clamp(Math.round(parsed.beginner_friendliness), 0, 100);
+      const tc = clamp(Math.round(parsed.technical_complexity), 0, 100);
+      const cr = clamp(Math.round(parsed.contribution_readiness), 0, 100);
+      
+      // Beginner: Simple, friendly, AND active/ready
+      if (bf >= 70 && tc <= 40 && cr >= 50) return "beginner";
+      
+      // Advanced: Complex OR unfriendly OR very hard to contribute to
+      if (tc >= 70 || bf <= 30) return "advanced";
+      
+      return "intermediate";
+    })(),
     confidence: clamp(parsed.confidence, 0, 1),
     score_breakdown: {
       beginner: {

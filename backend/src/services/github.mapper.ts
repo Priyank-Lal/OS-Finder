@@ -14,35 +14,42 @@ export async function mapGithubRepoToProject(response: any, lang: string) {
         good_first_issue: repo.goodFirstIssues?.totalCount || 0,
         help_wanted: repo.helpWantedIssues?.totalCount || 0,
         beginner: 0, // Removed specific beginner labels to optimize query
-        bug: repo.bugIssues?.totalCount || 0,
-        enhancement: repo.enhancementIssues?.totalCount || 0,
-        documentation: repo.documentationIssues?.totalCount || 0,
+        bug: 0, // Removed to optimize query
+        enhancement: 0, // Removed to optimize query
+        documentation: 0, // Removed to optimize query
       };
 
       // ---------- PR MERGE METRICS ----------
-      const prNodes = repo.recentPRs?.nodes || [];
+      const recentPRs = repo.recentPRs?.nodes || [];
+      const mergedPRs = repo.mergedPRs?.nodes || [];
 
-      const mergeTimes: number[] = prNodes
-        .filter((pr: any) => pr.mergedAt)
+
+
+      // Calculate Median Merge Time using ONLY merged PRs (Median is better for outliers)
+      const mergeTimes: number[] = mergedPRs
         .map(
           (pr: any) =>
-            (new Date(pr.mergedAt!).getTime() -
+            (new Date(pr.mergedAt).getTime() -
               new Date(pr.createdAt).getTime()) /
             36e5
-        );
+        )
+        .sort((a: any, b: any) => a - b);
 
-      const avgMergeTime =
-        mergeTimes.length > 0
-          ? Number(
-              (
-                mergeTimes.reduce((a, b) => a + b, 0) / mergeTimes.length
-              ).toFixed(2)
-            )
-          : null;
+      let avgMergeTime: number | null = null;
+      if (mergeTimes.length > 0) {
+        const mid = Math.floor(mergeTimes.length / 2);
+        avgMergeTime =
+          mergeTimes.length % 2 !== 0
+            ? mergeTimes[mid]
+            : (mergeTimes[mid - 1] + mergeTimes[mid]) / 2;
+            
+        avgMergeTime = Number(avgMergeTime.toFixed(1));
+      }
 
+      // Calculate Merge Ratio using recent PRs (Open/Merged/Closed)
       const prMergeRatio =
-        prNodes.length > 0
-          ? Number((prNodes.filter((pr: any) => pr.mergedAt).length / prNodes.length).toFixed(2))
+        recentPRs.length > 0
+          ? Number((recentPRs.filter((pr: any) => pr.mergedAt).length / recentPRs.length).toFixed(2))
           : 0;
 
       // ---------- ISSUE SAMPLE METRICS ----------
@@ -135,10 +142,20 @@ export async function mapGithubRepoToProject(response: any, lang: string) {
       };
 
       // ---------- INITIAL SCORING (NO AI) ----------
-      const score = scoreWithRules(projectBase as any, {
+      let score = scoreWithRules(projectBase as any, {
         readme: "",
         contributingMd: "",
       });
+
+      // STRICT INACTIVITY FILTER
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      if (projectBase.last_commit && new Date(projectBase.last_commit) < sixMonthsAgo) {
+        score.contribution_readiness = 0;
+        score.overall_score = Math.round(score.overall_score * 0.5); // Heavy penalty
+        score.recommended_level = "advanced"; // Not for beginners
+      }
 
       return {
         ...projectBase,
