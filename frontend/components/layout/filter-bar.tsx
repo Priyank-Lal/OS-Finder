@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X, SlidersHorizontal, Filter } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const CATEGORIES = [
   "web-framework",
@@ -75,6 +75,24 @@ export default function FilterBar({
   setPrMergeTime,
 }: FilterBarProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  
+  // Local state for sliders to prevent excessive updates
+  const [localMinStars, setLocalMinStars] = useState(minStars);
+  const [localMinScore, setLocalMinScore] = useState(minScore);
+  const [localMaxIssues, setLocalMaxIssues] = useState(maxIssues);
+
+  // Sync local state when props change (e.g. from URL or reset)
+  useEffect(() => {
+    setLocalMinStars(minStars);
+  }, [minStars]);
+
+  useEffect(() => {
+    setLocalMinScore(minScore);
+  }, [minScore]);
+
+  useEffect(() => {
+    setLocalMaxIssues(maxIssues);
+  }, [maxIssues]);
 
   const hasActiveFilters = minStars > 0 || maxIssues !== null || minScore > 0 || prMergeTime !== "all";
 
@@ -175,14 +193,15 @@ export default function FilterBar({
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">Minimum Stars</label>
                 <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
-                  {minStars === 0 ? "Any" : `${(minStars / 1000).toFixed(0)}k+`}
+                  {localMinStars === 0 ? "Any" : `${(localMinStars / 1000).toFixed(0)}k+`}
                 </span>
               </div>
               <Slider
-                value={[minStars]}
-                onValueChange={([value]: number[]) => setMinStars(value)}
-                max={50000}
-                step={1000}
+                value={[localMinStars]}
+                onValueChange={([value]: number[]) => setLocalMinStars(value)}
+                onValueCommit={([value]: number[]) => setMinStars(value)}
+                max={200000}
+                step={5000}
                 className="w-full py-2"
               />
             </div>
@@ -192,12 +211,13 @@ export default function FilterBar({
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">Min Score</label>
                 <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
-                  {minScore === 0 ? "Any" : `${minScore}+`}
+                  {localMinScore === 0 ? "Any" : `${localMinScore}+`}
                 </span>
               </div>
               <Slider
-                value={[minScore]}
-                onValueChange={([value]: number[]) => setMinScore(value)}
+                value={[localMinScore]}
+                onValueChange={([value]: number[]) => setLocalMinScore(value)}
+                onValueCommit={([value]: number[]) => setMinScore(value)}
                 max={100}
                 step={10}
                 className="w-full py-2"
@@ -209,12 +229,13 @@ export default function FilterBar({
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">Max Open Issues</label>
                 <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
-                  {maxIssues === null ? "Any" : maxIssues}
+                  {localMaxIssues === null ? "Any" : localMaxIssues}
                 </span>
               </div>
               <Slider
-                value={[maxIssues || 500]}
-                onValueChange={([value]: number[]) => setMaxIssues(value === 500 ? null : value)}
+                value={[localMaxIssues || 500]}
+                onValueChange={([value]: number[]) => setLocalMaxIssues(value === 500 ? null : value)}
+                onValueCommit={([value]: number[]) => setMaxIssues(value === 500 ? null : value)}
                 max={500}
                 step={50}
                 className="w-full py-2"

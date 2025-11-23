@@ -6,6 +6,10 @@ export function buildRepoQueryParams({
   level,
   sortBy,
   search,
+  minStars,
+  maxIssues,
+  minScore,
+  prMergeTime,
 }: any) {
   const params: Record<string, string> = {};
 
@@ -32,6 +36,12 @@ export function buildRepoQueryParams({
   if (search && search.trim().length > 0) {
     params.search = search.trim();
   }
+
+  // Advanced Filters
+  if (minStars > 0) params.minStars = String(minStars);
+  if (maxIssues !== null && maxIssues !== undefined) params.maxIssues = String(maxIssues);
+  if (minScore > 0) params.minScore = String(minScore);
+  if (prMergeTime && prMergeTime !== "all") params.prMergeTime = prMergeTime;
 
   // Pagination
   params.page = String(page || 1);

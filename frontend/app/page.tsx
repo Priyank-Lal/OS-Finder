@@ -12,6 +12,9 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { RepoCardProps } from "@/interface/project.interface";
 
 
+import { Toaster } from "sonner";
+import { toast } from "sonner";
+
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("");
@@ -56,6 +59,15 @@ export default function HomePage() {
   });
   const { data: reposData, isLoading, isError, error } = queryResult;
 
+  // Error Handling
+  useEffect(() => {
+    if (isError && error) {
+      toast.error("Failed to fetch repositories", {
+        description: error.message || "Please try again later.",
+      });
+    }
+  }, [isError, error]);
+
   const isPreviousData = (queryResult as any)?.isPreviousData ?? false;
 
   const repos = reposData?.data || [];
@@ -64,6 +76,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Toaster position="top-center" />
       <Header
         selectedLanguage={selectedLanguage}
         setSelectedLanguage={setSelectedLanguage}
@@ -110,6 +123,9 @@ export default function HomePage() {
           ) : isError ? (
             <div className="col-span-full text-center py-12">
               <p className="text-destructive">Error: {error?.message}</p>
+              <p className="text-muted-foreground text-sm mt-2">
+                Try refreshing the page or adjusting your filters.
+              </p>
             </div>
           ) : repos.length > 0 ? (
             repos.map((repo: RepoCardProps) => (
