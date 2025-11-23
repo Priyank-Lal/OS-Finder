@@ -60,6 +60,11 @@ const fetchLimiter = rateLimit({
 app.use("/api/", limiter);
 app.use("/api/github/fetch", fetchLimiter);
 
+// Health check endpoint for uptime monitors (keeps Render awake)
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
+
 
 
 // Routes
