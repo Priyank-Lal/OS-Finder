@@ -29,6 +29,7 @@ import RepoHero from "@/components/repo/RepoHero";
 import RepoOverview from "@/components/repo/RepoOverview";
 import RepoTasks from "@/components/repo/RepoTasks";
 import RepoIssueSpotlight from "@/components/repo/RepoIssueSpotlight";
+import RepoContributionAreas from "@/components/repo/RepoContributionAreas";
 
 export default function RepoDetailPage({
   params,
@@ -124,6 +125,7 @@ export default function RepoDetailPage({
           {/* Left Column (Main Content) - Span 8 */}
           <div className="lg:col-span-8 space-y-8">
             <RepoOverview repo={repo} />
+            <RepoContributionAreas repo={repo} />
             <RepoTasks repo={repo} />
             <RepoIssueSpotlight repo={repo} />
           </div>

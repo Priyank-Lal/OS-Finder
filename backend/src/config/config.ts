@@ -12,37 +12,37 @@ dotEnvConfig({
   path: path.resolve(__dirname, "../../.env"),
 });
 
-// Validation function
-function validateConfig() {
-  const errors: string[] = [];
+// // Validation function
+// function validateConfig() {
+//   const errors: string[] = [];
 
-  if (!process.env.GITHUB_TOKEN) {
-    errors.push("GITHUB_TOKEN is required");
-  }
+//   if (!process.env.GITHUB_TOKEN) {
+//     errors.push("GITHUB_TOKEN is required");
+//   }
 
-  if (!process.env.MONGODB_URI) {
-    errors.push("MONGODB_URI is required");
-  }
+//   if (!process.env.MONGODB_URI) {
+//     errors.push("MONGODB_URI is required");
+//   }
 
-  if (!process.env.GEMINI_KEYS) {
-    errors.push("GEMINI_KEYS is required (comma-separated list)");
-  }
+//   if (!process.env.GEMINI_KEYS) {
+//     errors.push("GEMINI_KEYS is required (comma-separated list)");
+//   }
 
-  if (errors.length > 0) {
-    console.error("Configuration Error:");
-    errors.forEach((err) => console.error(`  - ${err}`));
-    console.error("\nPlease check your .env file\n");
-    process.exit(1);
-  }
-}
+//   if (errors.length > 0) {
+//     console.error("Configuration Error:");
+//     errors.forEach((err) => console.error(`  - ${err}`));
+//     console.error("\nPlease check your .env file\n");
+//     process.exit(1);
+//   }
+// }
 
 // Only validate in production or when explicitly requested
-if (
-  process.env.NODE_ENV === "production" ||
-  process.env.VALIDATE_CONFIG === "true"
-) {
-  validateConfig();
-}
+// if (
+//   process.env.NODE_ENV === "production" ||
+//   process.env.VALIDATE_CONFIG === "true"
+// ) {
+//   validateConfig();
+// }
 
 export const _config = {
   // Required
