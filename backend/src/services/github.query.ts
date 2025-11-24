@@ -159,22 +159,6 @@ const query = `query ($search: String!, $count: Int!, $cursor: String) {
           }
         }
 
-        # Issue samples for label analysis (optimized: removed createdAt)
-        issueSamples: issues(
-          first: 3
-          states: OPEN
-          orderBy: { field: CREATED_AT, direction: DESC }
-        ) {
-          nodes {
-            title
-            labels(first: 5) {
-              nodes {
-                name
-              }
-            }
-          }
-        }
-
         # KEEP standard issue categories (cheap)
         issues(states: OPEN) { totalCount }
 
@@ -189,38 +173,9 @@ const query = `query ($search: String!, $count: Int!, $cursor: String) {
           states: OPEN
         ) { totalCount }
 
-        # Removed expensive specific issue counts to prevent 502s
-        # firstTimers, beginnerIssues, refactorIssues, highPriorityIssues, bugIssues, enhancementIssues, documentationIssues removed
-
-        # Pull request activity — REMOVE comments (heavy)
+        # Pull request activity (simplified - just counts)
         openPRs: pullRequests(states: OPEN) {
           totalCount
-        }
-
-        # Recent PRs for ratio calculation (Open vs Merged vs Closed)
-        recentPRs: pullRequests(
-          states: [OPEN, MERGED, CLOSED]
-          first: 15
-          orderBy: { field: CREATED_AT, direction: DESC }
-        ) {
-          nodes {
-            createdAt
-            mergedAt
-            state
-          }
-          totalCount
-        }
-
-        # Dedicated Merged PRs for accurate time calculation
-        mergedPRs: pullRequests(
-          states: MERGED
-          first: 5
-          orderBy: { field: UPDATED_AT, direction: DESC }
-        ) {
-          nodes {
-            createdAt
-            mergedAt
-          }
         }
 
         # Contributors count (cheap)
@@ -262,7 +217,7 @@ export async function safeGithubQuery(
   const searchQuery = `language:${metadata?.lang} stars:>${metadata?.minStars} fork:false archived:false pushed:>=${dateString}`;
   const variables = {
     search: searchQuery,
-    count: 25, // Increased from 5 to 25 for faster discovery
+    count: 10, // Reduced from 25 to avoid complexity limits
     cursor: metadata?.cursor || null,
   };
 

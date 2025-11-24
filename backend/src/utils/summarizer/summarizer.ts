@@ -44,8 +44,6 @@ export async function processSummaries(): Promise<void> {
       .select(
         "_id repo_url repo_name stars forkCount contributors topics language " +
           "issue_data activity last_commit last_updated beginner_friendliness " +
-          "technical_complexity contribution_readiness " +
-          "issue_samples file_tree_metrics community_health " +
           "languages_breakdown summarization_attempts last_summarization_error"
       )
       .sort({ summarization_attempts: 1, stars: -1 }) // Prioritize: new repos, then popular

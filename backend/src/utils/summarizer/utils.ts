@@ -58,6 +58,11 @@ export async function summarizeRepo(repo: any): Promise<void> {
       throw new Error("No README available");
     }
 
+    // ========== STEP 1.5: FETCH PR METRICS (REST API) ==========
+    console.log(`Fetching PR metrics for ${repoName}...`);
+    const { fetchPRMetrics } = await import("../../services/github.rest.js");
+    const prMetrics = await fetchPRMetrics(owner, name);
+
     // ========== STEP 2: ANALYZE FILE TREE ==========
     let fileTreeMetrics = null;
     if (fileTree) {
@@ -119,7 +124,7 @@ export async function summarizeRepo(repo: any): Promise<void> {
             file_tree_metrics: "",
             community_health: "",
             languages_breakdown: "",
-            issue_samples: "",
+
             readme_raw: "",
             contributing_raw: "",
             code_of_conduct_raw: "",
@@ -137,7 +142,7 @@ export async function summarizeRepo(repo: any): Promise<void> {
     const { generateLabelAnalysis } = await import("../../ai/index.js");
 
     const allLabels = await fetchRepoLabels(repo.repo_url);
-    const labelMapping = await generateLabelAnalysis(allLabels, repo.issue_samples || []);
+    const labelMapping = await generateLabelAnalysis(allLabels, []);
 
     // Populate counts in labelMapping using allLabels data
     const labelCounts = new Map(allLabels.map((l) => [l.name, l.count || 0]));
@@ -207,7 +212,7 @@ export async function summarizeRepo(repo: any): Promise<void> {
       () =>
         generateContributionAreas({
           issue_counts: metadata.issue_counts,
-          issue_samples: repo.issue_samples || [],
+          issue_samples: [],
           topics: metadata.topics,
           phase1,
           phase2,
@@ -261,7 +266,7 @@ export async function summarizeRepo(repo: any): Promise<void> {
           phase1,
           phase2,
           phase3,
-          issue_samples: repo.issue_samples || [],
+          issue_samples: [],
           scores: {
             beginner_friendliness: scores.beginner_friendliness,
             technical_complexity: scores.technical_complexity,
@@ -297,6 +302,12 @@ export async function summarizeRepo(repo: any): Promise<void> {
           beginner_tasks: phase4.beginner_tasks || [],
           intermediate_tasks: phase4.intermediate_tasks || [],
 
+          // Activity metrics (PR timing from REST API)
+          activity: {
+            avg_pr_merge_hours: prMetrics.avg_pr_merge_hours,
+            pr_merge_ratio: prMetrics.pr_merge_ratio,
+          },
+          
           // Unified scores (from single scoring method)
           beginner_friendliness: scores.beginner_friendliness,
           technical_complexity: scores.technical_complexity,

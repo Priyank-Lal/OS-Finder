@@ -49,12 +49,7 @@ export interface LanguageBreakdown {
   size: number;
 }
 
-export interface IssueSample {
-  title: string;
-  labels: string[];
-  created_at?: string;
-  has_response?: boolean;
-}
+
 
 export interface ContributionArea {
   area: string;
@@ -123,7 +118,7 @@ export interface IProject extends Document {
   beginner_tasks: Task[];
   intermediate_tasks: Task[];
 
-  issue_samples?: IssueSample[];
+
 
   summarizedAt?: Date;
   summarization_attempts?: number;

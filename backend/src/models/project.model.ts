@@ -185,16 +185,6 @@ const projectSchema = new Schema(
       },
     ],
 
-    // ========== LIGHTWEIGHT ISSUE SAMPLES ==========
-    issue_samples: [
-      {
-        title: String,
-        labels: [String],
-        created_at: Date,
-        has_response: Boolean,
-      },
-    ],
-
     // ========== SUMMARIZATION TRACKING ==========
     summarizedAt: Date,
     summarization_attempts: { type: Number, default: 0 },

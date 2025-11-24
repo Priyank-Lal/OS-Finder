@@ -5,16 +5,16 @@ import { SchedulerLock } from "./scheduler.lock.js";
 const LANGUAGES = [
   "JavaScript",
   "Python",
-  "TypeScript",
-  "Java",
-  "Go",
-  "Rust",
-  "C++",
-  "Ruby",
-  "PHP",
-  "C#",
-  "Swift",
-  "Kotlin",
+  // "TypeScript",
+  // "Java",
+  // "Go",
+  // "Rust",
+  // "C++",
+  // "Ruby",
+  // "PHP",
+  // "C#",
+  // "Swift",
+  // "Kotlin",
 ];
 
 let currentLangIndex = 0;
@@ -48,8 +48,8 @@ async function runDiscovery() {
   }
 }
 
-// Run at minute 30 past every 4th hour (00:30, 04:30, 08:30...)
-// This avoids conflict with Repo Sync (00:00) and Summarizer (03:00)
-cron.schedule("30 */4 * * *", runDiscovery);
+// Run at 6:45 AM IST (01:15 UTC) daily for testing
+// IST = UTC + 5:30, so 6:45 AM IST = 1:15 AM UTC
+cron.schedule("15 1 * * *", runDiscovery);
 
-console.log("Discovery cron scheduled (every 4 hours at :30)");
+console.log("Discovery cron scheduled (daily at 6:45 AM IST / 01:15 UTC)");

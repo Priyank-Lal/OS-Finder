@@ -111,7 +111,7 @@ export async function mapGithubRepoToProject(response: any, lang: string) {
         languages_breakdown: languages,
         file_tree_metrics: null, // summarizer fills later
 
-        issue_samples: cleanedIssueSamples,
+
         issue_data: issueData,
 
         activity: {

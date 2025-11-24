@@ -63,3 +63,76 @@ export function getRestQueueStatus() {
     isPaused: REST_QUEUE.isPaused,
   };
 }
+
+export interface PRMetrics {
+  avg_pr_merge_hours: number | null;
+  pr_merge_ratio: number;
+  total_prs_checked: number;
+}
+
+/**
+ * Fetch PR metrics using REST API (avoids GraphQL complexity limits)
+ * @param owner - Repository owner
+ * @param repo - Repository name
+ */
+export async function fetchPRMetrics(
+  owner: string,
+  repo: string
+): Promise<PRMetrics> {
+  try {
+    const octokit = new Octokit({ auth: _config.GITHUB_TOKEN });
+
+    // Fetch recent PRs (last 30)
+    const { data: prs } = await octokit.pulls.list({
+      owner,
+      repo,
+      state: "all", // Get open, closed, and merged
+      sort: "updated",
+      direction: "desc",
+      per_page: 30,
+    });
+
+    if (prs.length === 0) {
+      return {
+        avg_pr_merge_hours: null,
+        pr_merge_ratio: 0,
+        total_prs_checked: 0,
+      };
+    }
+
+    // Calculate metrics
+    const mergedPRs = prs.filter((pr) => pr.merged_at);
+    const mergeTimes: number[] = [];
+
+    for (const pr of mergedPRs) {
+      if (pr.created_at && pr.merged_at) {
+        const created = new Date(pr.created_at).getTime();
+        const merged = new Date(pr.merged_at).getTime();
+        const hoursToMerge = (merged - created) / (1000 * 60 * 60);
+        mergeTimes.push(hoursToMerge);
+      }
+    }
+
+    const avg_pr_merge_hours =
+      mergeTimes.length > 0
+        ? mergeTimes.reduce((a, b) => a + b, 0) / mergeTimes.length
+        : null;
+
+    const pr_merge_ratio = prs.length > 0 ? mergedPRs.length / prs.length : 0;
+
+    console.log(`📊 PR metrics for ${owner}/${repo}: ${Math.round(avg_pr_merge_hours || 0)}h avg, ${Math.round(pr_merge_ratio * 100)}% merged`);
+
+    return {
+      avg_pr_merge_hours: avg_pr_merge_hours ? Math.round(avg_pr_merge_hours) : null,
+      pr_merge_ratio: Math.round(pr_merge_ratio * 100) / 100,
+      total_prs_checked: prs.length,
+    };
+  } catch (error: any) {
+    console.error(`Failed to fetch PR metrics for ${owner}/${repo}:`, error.message);
+    return {
+      avg_pr_merge_hours: null,
+      pr_merge_ratio: 0,
+      total_prs_checked: 0,
+    };
+  }
+}
