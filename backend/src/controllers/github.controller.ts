@@ -5,18 +5,22 @@ import { filterGithubRepos } from "../services/github.filter.js";
 import { Request, Response } from "express";
 
 
-export const fetchRepos = async (lang: string, minStars: number = 100) => {
+export const fetchRepos = async (
+  lang: string, 
+  minStars: number = 100,
+  targetCount: number = 750
+) => {
   try {
     let allFiltered: any[] = [];
     let cursor: string | null = null;
     let hasNextPage = true;
     let loopCount = 0;
-    const MAX_LOOPS = 40; // Fetch up to 40 pages (40 * 25 = 1000 max potential)
+    const MAX_LOOPS = 100; // Increase max loops to support Tier 1 targets
 
-    console.log(`Starting fetch for ${lang} (minStars: ${minStars})...`);
+    console.log(`Starting fetch for ${lang} (minStars: ${minStars}, target: ${targetCount})...`);
 
-    // Target 750 repos (leaving buffer for filtering)
-    while (hasNextPage && loopCount < MAX_LOOPS && allFiltered.length < 750) {
+    // Fetch until target is reached
+    while (hasNextPage && loopCount < MAX_LOOPS && allFiltered.length < targetCount) {
       loopCount++;
       console.log(`--- Fetch Loop ${loopCount} (Cursor: ${cursor}) ---`);
 
