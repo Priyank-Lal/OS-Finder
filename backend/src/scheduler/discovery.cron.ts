@@ -61,21 +61,9 @@ async function runDiscovery() {
   }
 }
 
-// One-time run at 1:30 PM today (if not passed yet)
-const now = new Date();
-const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 13, 30, 0, 0);
+// Run at 1:45 PM IST (08:15 UTC) daily
+// IST = UTC + 5:30, so 1:45 PM IST = 8:15 AM UTC
+cron.schedule("45 13 * * *", runDiscovery);
 
-if (target > now) {
-  const delay = target.getTime() - now.getTime();
-  console.log(`🔔 One-time discovery scheduled for 1:30 PM today (in ${Math.round(delay / 60000)} minutes)`);
-  setTimeout(() => {
-    runDiscovery().catch(err => console.error("Discovery failed:", err));
-  }, delay);
-}
-
-// Run at 9:45 AM IST (04:15 UTC) daily
-// IST = UTC + 5:30, so 9:45 AM IST = 4:15 AM UTC
-cron.schedule("15 4 * * *", runDiscovery);
-
-console.log("Discovery cron scheduled (daily at 9:45 AM IST / 04:15 UTC)");
+console.log("Discovery cron scheduled (daily at 1:45 PM IST / 08:15 UTC)");
 console.log(`Configured languages: ${ALL_LANGUAGES.length} (T1: ${TIER_1_LANGUAGES.length}, T2: ${TIER_2_LANGUAGES.length}, T3: ${TIER_3_LANGUAGES.length})`);
