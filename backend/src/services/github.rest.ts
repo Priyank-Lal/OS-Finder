@@ -80,7 +80,7 @@ export async function fetchPRMetrics(
   repo: string
 ): Promise<PRMetrics> {
   try {
-    const octokit = new Octokit({ auth: _config.GITHUB_TOKEN });
+    const octokit = new Octokit({ auth: _config.GITHUB_PR_TOKEN });
 
     // Fetch recent PRs (last 30)
     const { data: prs } = await octokit.pulls.list({

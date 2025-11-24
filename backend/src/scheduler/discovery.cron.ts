@@ -48,8 +48,8 @@ async function runDiscovery() {
   }
 }
 
-// Run at 6:45 AM IST (01:15 UTC) daily for testing
-// IST = UTC + 5:30, so 6:45 AM IST = 1:15 AM UTC
-cron.schedule("15 1 * * *", runDiscovery);
+// Run at 7:00 AM IST (01:30 UTC) daily for testing
+// IST = UTC + 5:30, so 7:00 AM IST = 1:30 AM UTC
+cron.schedule("30 1 * * *", runDiscovery);
 
-console.log("Discovery cron scheduled (daily at 6:45 AM IST / 01:15 UTC)");
+console.log("Discovery cron scheduled (daily at 7:00 AM IST / 01:30 UTC)");
