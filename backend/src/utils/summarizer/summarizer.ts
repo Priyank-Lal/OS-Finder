@@ -143,4 +143,4 @@ export async function processSummaries(): Promise<void> {
   }
 }
 
-processSummaries()
+// processSummaries()

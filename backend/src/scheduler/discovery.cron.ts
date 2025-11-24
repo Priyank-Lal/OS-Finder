@@ -3,7 +3,7 @@ import { fetchRepos } from "../controllers/github.controller.js";
 import { SchedulerLock } from "./scheduler.lock.js";
 
 // Tiered language strategy
-const TIER_1_LANGUAGES = ["Python", "TypeScript", "Java", "Go"];
+const TIER_1_LANGUAGES = ["TypeScript", "Java", "Go"];
 const TIER_2_LANGUAGES = ["Rust", "C++", "Ruby", "PHP", "C#"];
 const TIER_3_LANGUAGES = ["Swift", "Kotlin"];
 
@@ -61,9 +61,7 @@ async function runDiscovery() {
   }
 }
 
-// Run at 9:45 AM IST (04:15 UTC) daily
-// IST = UTC + 5:30, so 9:45 AM IST = 4:15 AM UTC
-cron.schedule("15 4 * * *", runDiscovery);
+cron.schedule("45 12 * * *", runDiscovery);
 
-console.log("Discovery cron scheduled (daily at 9:45 AM IST / 04:15 UTC)");
+console.log("Discovery cron scheduled (daily at 12:45 PM IST / 07:15 UTC)");
 console.log(`Configured languages: ${ALL_LANGUAGES.length} (T1: ${TIER_1_LANGUAGES.length}, T2: ${TIER_2_LANGUAGES.length}, T3: ${TIER_3_LANGUAGES.length})`);
