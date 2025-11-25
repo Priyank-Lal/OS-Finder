@@ -18,7 +18,7 @@ const apiKeyCount = [
 export const AI_CALLS_PER_REPO = 7; // Updated to reflect actual calls
 export const SAFE_RPM_PER_KEY = 10; // Reduced from 12 for safety
 export const TOTAL_SAFE_RPM = (apiKeyCount || 16) * SAFE_RPM_PER_KEY;
-export const BATCH_LIMIT = 50; // Reduced from 30 for stability
+export const BATCH_LIMIT = 150; // Increased to 100
 export const MAX_RETRY_ATTEMPTS = 3;
 
 export const aiQueue = new PQueue({

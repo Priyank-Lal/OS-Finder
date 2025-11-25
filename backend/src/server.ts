@@ -56,14 +56,15 @@ const fetchLimiter = rateLimit({
   message: "Too many fetch requests, please try again later",
 });
 
-// Apply rate limiting
-app.use("/api/", limiter);
-app.use("/api/github/fetch", fetchLimiter);
-
 // Health check endpoint for uptime monitors (keeps Render awake)
+// Define BEFORE rate limiters to avoid blocking
 app.get("/health", (req, res) => {
   res.status(200).send("OK");
 });
+
+// Apply rate limiting
+app.use("/api/", limiter);
+app.use("/api/github/fetch", fetchLimiter);
 
 
 

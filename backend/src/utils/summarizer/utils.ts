@@ -311,10 +311,9 @@ export async function summarizeRepo(repo: any): Promise<void> {
           intermediate_tasks: phase4.intermediate_tasks || [],
 
           // Activity metrics (PR timing from REST API)
-          activity: {
-            avg_pr_merge_hours: prMetrics.avg_pr_merge_hours,
-            pr_merge_ratio: prMetrics.pr_merge_ratio,
-          },
+          // Activity metrics (PR timing from REST API)
+          "activity.avg_pr_merge_hours": prMetrics.avg_pr_merge_hours,
+          "activity.pr_merge_ratio": prMetrics.pr_merge_ratio,
           
           // Unified scores (from single scoring method)
           beginner_friendliness: scores.beginner_friendliness,

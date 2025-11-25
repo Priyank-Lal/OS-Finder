@@ -8,14 +8,14 @@ import { Request, Response } from "express";
 export const fetchRepos = async (
   lang: string, 
   minStars: number = 100,
-  targetCount: number = 750
+  targetCount: number = 1000
 ) => {
   try {
     let allFiltered: any[] = [];
     let cursor: string | null = null;
     let hasNextPage = true;
     let loopCount = 0;
-    const MAX_LOOPS = 100; // Increase max loops to support Tier 1 targets
+    const MAX_LOOPS = 120; // Increase max loops to support Tier 1 targets
 
     console.log(`Starting fetch for ${lang} (minStars: ${minStars}, target: ${targetCount})...`);
 

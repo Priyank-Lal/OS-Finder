@@ -104,10 +104,10 @@ export async function processSummaries(): Promise<void> {
       const retryDelay = attempts > 0 ? baseDelay * Math.pow(2, attempts) : baseDelay;
       await new Promise((resolve) => setTimeout(resolve, retryDelay));
 
-      // Batch pause logic: Pause for 60s every 5 repos to respect API limits
-      if (scheduledCount % 5 === 0) {
-        console.log(`\n--- Pausing for 90s to cool down API (Processed batch of 5) ---\n`);
-        await new Promise((resolve) => setTimeout(resolve, 90000));
+      // Batch pause logic: Pause for 300s (5 mins) every 10 repos to respect API limits
+      if (scheduledCount % 10 === 0) {
+        console.log(`\n--- Pausing for 300s to cool down API (Processed batch of 10) ---\n`);
+        await new Promise((resolve) => setTimeout(resolve, 600000));
       }
     }
 

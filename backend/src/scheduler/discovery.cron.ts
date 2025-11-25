@@ -3,7 +3,7 @@ import { fetchRepos } from "../controllers/github.controller.js";
 import { SchedulerLock } from "./scheduler.lock.js";
 
 // Tiered language strategy
-const TIER_1_LANGUAGES = ["Java", "Go"];
+const TIER_1_LANGUAGES = ["JavaScript", "Java", "Go"];
 const TIER_2_LANGUAGES = ["Rust", "C++", "Ruby", "PHP", "C#"];
 const TIER_3_LANGUAGES = ["Swift", "Kotlin"];
 
@@ -15,8 +15,8 @@ const ALL_LANGUAGES = [
 
 // Target repo counts per tier
 const TIER_TARGETS = {
-  1: 750,  // Tier 1: 700-750 repos
-  2: 400,  // Tier 2: 300-400 repos
+  1: 1000,  // Tier 1: 700-750 repos
+  2: 600,  // Tier 2: 300-600 repos
   3: 200,  // Tier 3: 100-200 repos
 };
 
@@ -26,7 +26,7 @@ function getTargetForLanguage(lang: string): number {
   if (TIER_1_LANGUAGES.includes(lang)) return TIER_TARGETS[1];
   if (TIER_2_LANGUAGES.includes(lang)) return TIER_TARGETS[2];
   if (TIER_3_LANGUAGES.includes(lang)) return TIER_TARGETS[3];
-  return 400; // Default fallback
+  return 500; // Default fallback
 }
 
 async function runDiscovery() {
@@ -61,9 +61,9 @@ async function runDiscovery() {
   }
 }
 
-// Run at 1:45 PM IST (08:15 UTC) daily
-// IST = UTC + 5:30, so 1:45 PM IST = 8:15 AM UTC
-cron.schedule("45 13 * * *", runDiscovery);
+// Run at 10:00 PM IST (16:30 UTC) daily
+// IST = UTC + 5:30, so 10:00 PM IST = 4:30 PM UTC
+cron.schedule("30 16 * * *", runDiscovery);
 
-console.log("Discovery cron scheduled (daily at 1:45 PM IST / 08:15 UTC)");
+console.log("Discovery cron scheduled (daily at 10:00 PM IST / 16:30 UTC)");
 console.log(`Configured languages: ${ALL_LANGUAGES.length} (T1: ${TIER_1_LANGUAGES.length}, T2: ${TIER_2_LANGUAGES.length}, T3: ${TIER_3_LANGUAGES.length})`);
