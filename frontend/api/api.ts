@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:3001",
+  baseURL: "https://os-finder.onrender.com",
 });
 
 export const getRepos = async (queryParams?: Record<string, any>) => {

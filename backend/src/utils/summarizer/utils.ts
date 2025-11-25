@@ -58,10 +58,18 @@ export async function summarizeRepo(repo: any): Promise<void> {
       throw new Error("No README available");
     }
 
-    // ========== STEP 1.5: FETCH PR METRICS (REST API) ==========
-    console.log(`Fetching PR metrics for ${repoName}...`);
-    const { fetchPRMetrics } = await import("../../services/github.rest.js");
-    const prMetrics = await fetchPRMetrics(owner, name);
+    // ========== STEP 1.5: FETCH PR METRICS & ISSUES (REST API) ==========
+    console.log(`Fetching PR metrics & issues for ${repoName}...`);
+    const { fetchPRMetrics, fetchIssueSamples } = await import("../../services/github.rest.js");
+    
+    // Run in parallel
+    const [prMetrics, issueSamples] = await Promise.all([
+      fetchPRMetrics(owner, name),
+      fetchIssueSamples(owner, name)
+    ]);
+
+    console.log(`   - PR Metrics: ${prMetrics.total_prs_checked > 0 ? "✓" : "⚠"}`);
+    console.log(`   - Issue Samples: ${issueSamples.length} fetched`);
 
     // ========== STEP 2: ANALYZE FILE TREE ==========
     let fileTreeMetrics = null;

@@ -3,7 +3,7 @@ import { fetchRepos } from "../controllers/github.controller.js";
 import { SchedulerLock } from "./scheduler.lock.js";
 
 // Tiered language strategy
-const TIER_1_LANGUAGES = ["TypeScript", "Java", "Go"];
+const TIER_1_LANGUAGES = ["Java", "Go"];
 const TIER_2_LANGUAGES = ["Rust", "C++", "Ruby", "PHP", "C#"];
 const TIER_3_LANGUAGES = ["Swift", "Kotlin"];
 

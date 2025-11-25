@@ -136,3 +136,45 @@ export async function fetchPRMetrics(
     };
   }
 }
+
+export interface IssueSample {
+  title: string;
+  labels: string[];
+  created_at: string;
+  has_response: boolean;
+}
+
+/**
+ * Fetch recent open issues for AI context
+ */
+export async function fetchIssueSamples(
+  owner: string,
+  repo: string
+): Promise<IssueSample[]> {
+  try {
+    // Use dedicated token if available, otherwise fallback
+    const token =  _config.GITHUB_ISSUE_TOKEN;
+    const octokit = new Octokit({ auth: token });
+
+    const { data: issues } = await octokit.issues.listForRepo({
+      owner,
+      repo,
+      state: "open",
+      sort: "created",
+      direction: "desc",
+      per_page: 10,
+    });
+
+    return issues
+      .filter((i: any) => !i.pull_request)
+      .map((i: any) => ({
+        title: i.title,
+        labels: i.labels.map((l: any) => (typeof l === "string" ? l : l.name)),
+        created_at: i.created_at,
+        has_response: i.comments > 0,
+      }));
+  } catch (error: any) {
+    console.warn(`Failed to fetch issue samples for ${owner}/${repo}:`, error.message);
+    return [];
+  }
+}
