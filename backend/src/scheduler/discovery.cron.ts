@@ -63,7 +63,8 @@ async function runDiscovery() {
 
 // Run at 10:00 PM IST (16:30 UTC) daily
 // IST = UTC + 5:30, so 10:00 PM IST = 4:30 PM UTC
-cron.schedule("30 16 * * *", runDiscovery);
+cron.schedule("0 */6 * * *", runDiscovery);
 
-console.log("Discovery cron scheduled (daily at 10:00 PM IST / 16:30 UTC)");
+console.log("Discovery cron scheduled (every 6 hours)");
+
 console.log(`Configured languages: ${ALL_LANGUAGES.length} (T1: ${TIER_1_LANGUAGES.length}, T2: ${TIER_2_LANGUAGES.length}, T3: ${TIER_3_LANGUAGES.length})`);
