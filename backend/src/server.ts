@@ -3,7 +3,7 @@ import { router as githubRouter } from "./routes/github.route.js";
 import { config } from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+// import rateLimit from "express-rate-limit";
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware.js";
 
 config();
@@ -42,6 +42,7 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+/*
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
@@ -55,6 +56,7 @@ const fetchLimiter = rateLimit({
   max: 10, // Limit fetch endpoint to 10 requests per hour
   message: "Too many fetch requests, please try again later",
 });
+*/
 
 // Health check endpoint for uptime monitors (keeps Render awake)
 // Define BEFORE rate limiters to avoid blocking
@@ -63,8 +65,8 @@ app.get("/health", (req, res) => {
 });
 
 // Apply rate limiting
-app.use("/api/", limiter);
-app.use("/api/github/fetch", fetchLimiter);
+// app.use("/api/", limiter);
+// app.use("/api/github/fetch", fetchLimiter);
 
 
 
