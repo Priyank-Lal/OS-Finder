@@ -99,8 +99,12 @@ export async function summarizeRepo(repo: any): Promise<void> {
     };
 
 
-    // Call directly without queue to ensure it's not being skipped
-    const suitability = await generateSuitabilityEvaluation(suitabilityData);
+    // Call via queue
+    const suitability = await queuedAICall(
+      () => generateSuitabilityEvaluation(suitabilityData),
+      "Suitability Check",
+      repoName
+    );
     
     console.log(`Suitability result for ${repoName}:`, {
       isSuitable: suitability.isSuitable,
@@ -150,7 +154,11 @@ export async function summarizeRepo(repo: any): Promise<void> {
     const { generateLabelAnalysis } = await import("../../ai/index.js");
 
     const allLabels = await fetchRepoLabels(repo.repo_url);
-    const labelMapping = await generateLabelAnalysis(allLabels, []);
+    const labelMapping = await queuedAICall(
+      () => generateLabelAnalysis(allLabels, []),
+      "Label Analysis",
+      repoName
+    );
 
     // Populate counts in labelMapping using allLabels data
     const labelCounts = new Map(allLabels.map((l) => [l.name, l.count || 0]));

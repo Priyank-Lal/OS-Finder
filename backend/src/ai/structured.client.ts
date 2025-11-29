@@ -36,7 +36,6 @@ export async function callAIStructured<T extends z.ZodType>(
         temperature,
       });
 
-      // Use LangChain's withStructuredOutput for native JSON schema enforcement
       const structuredModel = model.withStructuredOutput(schema);
       
       const result = await structuredModel.invoke(prompt);

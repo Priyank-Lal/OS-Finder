@@ -23,6 +23,33 @@ const MODEL_FALLBACK_CHAIN = [
 // Track which models are rate-limited
 const modelCooldown = new Map<string, number>();
 
+// --- TPM Tracking ---
+const MAX_TPM = 250000; // 250k TPM limit
+const tpmHistory: { timestamp: number; tokens: number }[] = [];
+
+function checkAndTrackTPM(estimatedTokens: number): number {
+  const now = Date.now();
+  // Remove entries older than 1 minute
+  while (tpmHistory.length > 0 && tpmHistory[0].timestamp < now - 60000) {
+    tpmHistory.shift();
+  }
+
+  const currentTPM = tpmHistory.reduce((acc, entry) => acc + entry.tokens, 0);
+
+  if (currentTPM + estimatedTokens > MAX_TPM) {
+    const oldestEntry = tpmHistory[0];
+    if (oldestEntry) {
+      // Return ms to wait until the oldest entry expires
+      return (oldestEntry.timestamp + 60000) - now;
+    }
+    return 1000; // Default wait if history is empty but somehow full (shouldn't happen)
+  }
+
+  // Track this call
+  tpmHistory.push({ timestamp: now, tokens: estimatedTokens });
+  return 0;
+}
+
 // --- Key Configuration per Task ---
 const taskKeyConfig: Record<AITask, string> = {
   label_analysis: _config.LABEL_ANALYSIS_API_KEYS || "",
@@ -142,6 +169,18 @@ export async function callAI(
     const key = getKeyForTask(task);
 
     try {
+      // Check TPM limit
+      // Estimate input tokens (rough approx: 4 chars per token)
+      const estimatedInputTokens = prompt.length / 4;
+      const estimatedTotalTokens = estimatedInputTokens + maxTokens;
+      
+      let waitTime = checkAndTrackTPM(estimatedTotalTokens);
+      while (waitTime > 0) {
+        console.log(`⏳ TPM limit reached (${Math.round(estimatedTotalTokens)} tokens). Waiting ${Math.round(waitTime)}ms...`);
+        await new Promise((r) => setTimeout(r, waitTime + 100)); // Wait + buffer
+        waitTime = checkAndTrackTPM(estimatedTotalTokens); // Re-check
+      }
+
       const client = new GoogleGenAI({ apiKey: key });
 
       const aiPromise = client.models.generateContent({

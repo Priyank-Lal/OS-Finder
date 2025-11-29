@@ -22,9 +22,9 @@ export const BATCH_LIMIT = 150; // Increased to 100
 export const MAX_RETRY_ATTEMPTS = 3;
 
 export const aiQueue = new PQueue({
-  concurrency: Math.max(2, Math.floor(apiKeyCount * 1.5)), // Reduced concurrency
-  interval: 60000 * 2, // 2 minute window (very safe)
-  intervalCap: TOTAL_SAFE_RPM,
+  concurrency: 2, // Strict concurrency to prevent bursting
+  interval: 60000, // 1 minute window
+  intervalCap: 15, // Strict 15 RPM limit per model (assuming single model usage primarily)
 });
 
 export const repoQueue = new PQueue({
