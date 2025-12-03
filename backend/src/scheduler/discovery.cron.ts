@@ -3,9 +3,9 @@ import { fetchRepos } from "../controllers/github.controller.js";
 import { SchedulerLock } from "./scheduler.lock.js";
 
 // Tiered language strategy
-const TIER_1_LANGUAGES = ["JavaScript", "Java", "Go"];
+const TIER_1_LANGUAGES = ["Go"];
 const TIER_2_LANGUAGES = ["Rust", "C++", "Ruby", "PHP", "C#"];
-const TIER_3_LANGUAGES = ["Swift", "Kotlin"];
+const TIER_3_LANGUAGES = ["Swift", "Kotlin", "C"];
 
 const ALL_LANGUAGES = [
   ...TIER_1_LANGUAGES,
@@ -13,11 +13,10 @@ const ALL_LANGUAGES = [
   ...TIER_3_LANGUAGES,
 ];
 
-// Target repo counts per tier
 const TIER_TARGETS = {
-  1: 1000,  // Tier 1: 700-750 repos
-  2: 600,  // Tier 2: 300-600 repos
-  3: 200,  // Tier 3: 100-200 repos
+  1: 1000, 
+  2: 600,  
+  3: 200, 
 };
 
 let currentLangIndex = 0;
