@@ -62,8 +62,8 @@ async function runDiscovery() {
 
 // Run at 7:30 PM IST and every 6 hours (1:30 AM, 7:30 AM, 1:30 PM)
 // Cron expression: 30 19,1,7,13 * * *
-cron.schedule("30 19,1,7,13 * * *", runDiscovery);
+// cron.schedule("30 19,1,7,13 * * *", runDiscovery);
 
-console.log("Discovery cron scheduled (every 6 hours)");
+// console.log("Discovery cron scheduled (every 6 hours)");
 
 console.log(`Configured languages: ${ALL_LANGUAGES.length} (T1: ${TIER_1_LANGUAGES.length}, T2: ${TIER_2_LANGUAGES.length}, T3: ${TIER_3_LANGUAGES.length})`);

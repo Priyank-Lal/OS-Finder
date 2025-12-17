@@ -1,4 +1,4 @@
-# 🛰️ OS-Finder
+# OS-Finder
 
 > **Discover high-quality open-source repositories to contribute to.**
 
@@ -6,29 +6,29 @@ OS-Finder goes beyond simple popularity metrics (like stars) to help developers 
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
-### 🧠 AI-Powered Repository Analysis
+### AI-Powered Repository Analysis
 OS-Finder leverages **Google Gemini 2.0 Flash** to perform deep qualitative analysis on every repository:
 - **Smart Summaries**: Instantly understand what a project does without reading the entire README.
 - **Tech Stack Extraction**: Automatically identifies languages, frameworks, and tools used.
 - **Task Suggestions**: Generates tailored "Beginner" and "Intermediate" task ideas based on the project's current needs.
 - **Contribution Readiness**: Evaluates the quality of `CONTRIBUTING.md` and community health files.
 
-### 📊 Unified Scoring System
+### Unified Scoring System
 We don't just list repos; we rank them based on a sophisticated multi-factor score:
 - **Beginner Friendliness**: How easy is it to onboard? (Based on documentation quality and "good first issue" labels).
 - **Technical Complexity**: Analysis of file tree depth, build configuration, and test coverage.
 - **Community Health**: Response times to issues, PR merge ratios, and recent activity.
 
-### 🛡️ Intelligent Discovery Engine
+### Intelligent Discovery Engine
 - **Tiered Scheduling**: Fetches repositories based on language popularity (Tier 1: JS/Java/Go, Tier 2: Rust/C++, etc.) to ensure a diverse mix.
 - **Rate Limit Protection**: Implements a distributed queue system with **15 RPM** strict limits and **TPM (Tokens Per Minute)** tracking to ensure stability.
 - **Automatic Filtering**: Filters out abandoned or read-only projects automatically.
 
 ---
 
-## 🎨 Frontend Experience
+## Frontend Experience
 
 The frontend is built to be fast, intuitive, and visually stunning.
 
@@ -40,7 +40,7 @@ The frontend is built to be fast, intuitive, and visually stunning.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Backend
 - **Runtime**: Node.js & TypeScript
@@ -59,7 +59,7 @@ The frontend is built to be fast, intuitive, and visually stunning.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 1.  **Discovery Service**: Runs on a schedule (7:30 PM IST & every 6 hours) to fetch potential repositories from GitHub.
 2.  **Analysis Pipeline**:

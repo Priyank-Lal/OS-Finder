@@ -62,13 +62,11 @@ const taskKeyConfig: Record<AITask, string> = {
   generic: _config.FALLBACK_API_KEYS || "",
 };
 
-// Fallback pool index
-let poolIndex = 0;
-const keysCooldown = new Map<string, number>(); // Track rate-limited keys
 
-/**
- * Get available model (respects cooldowns)
- */
+let poolIndex = 0;
+const keysCooldown = new Map<string, number>(); 
+
+
 export function getAvailableModel(preferredModel?: string): string {
   const now = Date.now();
   

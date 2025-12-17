@@ -22,6 +22,6 @@ async function runSummarization() {
 }
 
 // Run every 8 hours
-cron.schedule("0 */8 * * *", runSummarization);
+// cron.schedule("0 */8 * * *", runSummarization);
 
 console.log("Summarizer cron scheduled (every 8 hours)");

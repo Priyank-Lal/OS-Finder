@@ -14,7 +14,6 @@ export async function computeUnifiedScore(
   }
 ): Promise<UnifiedScoreResult> {
   try {
-    // Try AI-first approach
     const aiScore = await scoreWithAI(repo, context);
 
     if (aiScore && aiScore.confidence >= 0.6) {

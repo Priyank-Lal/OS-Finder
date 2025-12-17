@@ -95,7 +95,6 @@ export async function generateLabelAnalysis(
     };
   }
 
-  // Convert to CategoryData format (count will be added later in summarizer)
   return {
     beginner: { labels: result.beginner || [], count: 0 },
     bug: { labels: result.bug || [], count: 0 },
